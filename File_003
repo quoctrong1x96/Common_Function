@@ -1,0 +1,352 @@
+
+    Sub UPD_C40C()
+        '*******************************************
+        'If C40C_Dynaset.RecordCount = 0 Then
+        If C40C_Dt.Rows.Count = 0 Then  '20160516 MODIFIED BY ECT LIUSW
+            Call UPD_C40C_INS()
+        Else
+            Call UPD_C40C_UPD()
+        End If
+    End Sub
+    Sub UPD_C40C_INS()
+        '******************************************* ＩＮＳＥＲＴ
+        'On Error GoTo UPD_C40C_INS_10 '20150608 LIUSW DEL
+        '-------------------------------------
+        SW_Err = ""
+        '------------------------------------------- SQL文発行
+        Str_Sql = "INSERT INTO DFW_C40C "
+        Str_Sql = Str_Sql & "(コンピュータ"
+        Str_Sql = Str_Sql & ",プログラム"
+        Str_Sql = Str_Sql & ",作業F"
+        Str_Sql = Str_Sql & ",製番"
+        Str_Sql = Str_Sql & ",構成ID"
+        Str_Sql = Str_Sql & ",手配ID"
+        Str_Sql = Str_Sql & ",工順"
+        Str_Sql = Str_Sql & ",X31"
+        Str_Sql = Str_Sql & ",品目K"
+        Str_Sql = Str_Sql & ",品目C"
+        Str_Sql = Str_Sql & ",図面番号"
+        Str_Sql = Str_Sql & ",場所C"
+        Str_Sql = Str_Sql & ",業者C"
+        Str_Sql = Str_Sql & ",得意先C"
+        Str_Sql = Str_Sql & ",取引先C"
+        Str_Sql = Str_Sql & ",担当C"
+        Str_Sql = Str_Sql & ",部署"
+        Str_Sql = Str_Sql & ",工程"
+        Str_Sql = Str_Sql & ",機械"
+        Str_Sql = Str_Sql & ",手配K)"
+        Str_Sql = Str_Sql & " VALUES "
+        Str_Sql = Str_Sql & "('" & C40C.コンピュータ & "'"
+        Str_Sql = Str_Sql & ",'" & C40C.プログラム & "'"      '@@8001 EX.NAGAO UPD START
+        Str_Sql = Str_Sql & ",'" & C40C.作業F & "'"
+        Str_Sql = Str_Sql & ",'" & C40C.製番 & "'"
+        Str_Sql = Str_Sql & ",'" & C40C.構成ID & "'"
+        Str_Sql = Str_Sql & ",'" & C40C.手配ID & "'"          '@@8001 EX.NAGAO UPD END
+        Str_Sql = Str_Sql & ",'" & C40C.工順 & "'"
+        Str_Sql = Str_Sql & ",'" & C40C.X31 & "'"             '@@8001 EX.NAGAO UPD START
+        Str_Sql = Str_Sql & ",'" & C40C.品目K & "'"
+        Str_Sql = Str_Sql & ",'" & C40C.品目C & "'"
+        Str_Sql = Str_Sql & ",'" & C40C.図面番号 & "'"
+        Str_Sql = Str_Sql & ",'" & C40C.場所C & "'"
+        Str_Sql = Str_Sql & ",'" & C40C.業者C & "'"
+        Str_Sql = Str_Sql & ",'" & C40C.得意先C & "'"
+        Str_Sql = Str_Sql & ",'" & C40C.取引先C & "'"
+        Str_Sql = Str_Sql & ",'" & C40C.担当C & "'"
+        Str_Sql = Str_Sql & ",'" & C40C.部署 & "'"
+        Str_Sql = Str_Sql & ",'" & C40C.工程 & "'"
+        Str_Sql = Str_Sql & ",'" & C40C.機械 & "'"
+        Str_Sql = Str_Sql & ",'" & C40C.手配K & "')"          '@@8001 EX.NAGAO UPD END
+        '-------------------------------------------
+        '20150608 LIUSW MODIFY BEGIN
+        'OraDatabase.DbExecuteSQL(Str_Sql)
+        Try
+            OraDatabase.executeSql(Str_Sql)
+        Catch ex As OracleException
+            SW_Err = ex.Code
+            If SW_Err = 0 Then
+                SW_Err = CStr(999999)
+            End If
+        End Try
+        '20150608 LIUSW MODIFY END
+        '-------------------------------------------
+        Exit Sub
+        '20150608 LIUSW DEL BEGIN
+        'UPD_C40C_INS_10:
+        '        '------------------------------------------- オラクルエラー判定
+        '        If OraDatabase.LastServerErr <> 0 Then
+        '            SW_Err = OraDatabase.LastServerErr
+        '            OraDatabase.LastServerErrReset()
+        '        Else
+        '            SW_Err = CStr(999999)
+        '        End If
+        '20150608 LIUSW DEL END
+    End Sub
+    Sub UPD_C40C_UPD()
+        '******************************************* ＵＰＤＡＴＥ
+        'On Error GoTo UPD_C40C_UPD_10  '20160516 DELETE BY ECT LIUSW
+        '-------------------------------------
+        SW_Err = ""
+        '------------------------------------------- SQL文発行
+        Str_Sql = "UPDATE DFW_C40C SET"
+        Str_Sql = Str_Sql & " コンピュータ = '" & C40C.コンピュータ & "'"
+        Str_Sql = Str_Sql & ",プログラム = '" & C40C.プログラム & "'"     '@@8001 EX.NAGAO UPD START
+        Str_Sql = Str_Sql & ",作業F = '" & C40C.作業F & "'"
+        Str_Sql = Str_Sql & ",製番 = '" & C40C.製番 & "'"
+        Str_Sql = Str_Sql & ",構成ID = '" & C40C.構成ID & "'"
+        Str_Sql = Str_Sql & ",手配ID = '" & C40C.手配ID & "'"             '@@8001 EX.NAGAO UPD END
+        Str_Sql = Str_Sql & ",工順 = '" & C40C.工順 & "'"
+        Str_Sql = Str_Sql & ",X31 = '" & C40C.X31 & "'"                   '@@8001 EX.NAGAO UPD START
+        Str_Sql = Str_Sql & ",品目K = '" & C40C.品目K & "'"
+        Str_Sql = Str_Sql & ",品目C = '" & C40C.品目C & "'"
+        Str_Sql = Str_Sql & ",図面番号 = '" & C40C.図面番号 & "'"
+        Str_Sql = Str_Sql & ",場所C = '" & C40C.場所C & "'"
+        Str_Sql = Str_Sql & ",業者C = '" & C40C.業者C & "'"
+        Str_Sql = Str_Sql & ",得意先C = '" & C40C.得意先C & "'"
+        Str_Sql = Str_Sql & ",取引先C = '" & C40C.取引先C & "'"
+        Str_Sql = Str_Sql & ",担当C = '" & C40C.担当C & "'"
+        Str_Sql = Str_Sql & ",部署 = '" & C40C.部署 & "'"
+        Str_Sql = Str_Sql & ",工程 = '" & C40C.工程 & "'"
+        Str_Sql = Str_Sql & ",機械 = '" & C40C.機械 & "'"
+        Str_Sql = Str_Sql & ",手配K = '" & C40C.手配K & "'"               '@@8001 EX.NAGAO UPD END
+        Str_Sql = Str_Sql & " WHERE (コンピュータ = '" & C40C.コンピュータ & "'"
+        Str_Sql = Str_Sql & " AND プログラム = '" & C40C.プログラム & "')"    '@@8001 EX.NAGAO UPD
+        '-------------------------------------------
+        '20160516 MODIFIED BY ECT LIUSW START
+        'OraDatabase.DbExecuteSQL(Str_Sql)
+        'UPD_C40C_UPD_10:
+        '        '------------------------------------------- オラクルエラー判定
+        '        If OraDatabase.LastServerErr <> 0 Then
+        '            SW_Err = OraDatabase.LastServerErr
+        '            OraDatabase.LastServerErrReset()
+        '        Else
+        '            SW_Err = CStr(999999)
+        '        End If
+        Try
+            OraDatabase.executeSql(Str_Sql)
+            OraDatabase.Commit() '20160725 ADDED BY YUANCHAO
+            OraDatabase.Start() '20160725 ADDED BY YUANCHAO
+        Catch ex As OracleException
+            SW_Err = ex.Code
+            If SW_Err = 0 Then
+                SW_Err = CStr(999999)
+            End If
+            OraDatabase.Rollback()
+        End Try
+        '20160516 MODIFIED BY ECT LIUSW END
+        '-------------------------------------------
+        Exit Sub
+    End Sub
+    Sub C00_000XB_POS_CHK()
+        '************************************* 郵便番号　チェック
+        ' "C00_000XB_POSG"に郵便番号をセットしてＣＡＬＬ
+        ' "C00_000XB_PERG"にステータスを返す。(" "=OK,"1"=ｴﾗｰ)
+        Dim POS_W As Short
+        C00_000XB_PERG = " "                                    '@@8001 EX.NAGAO UPD
+        ' 前から３桁チェック
+        POS_W = Val(Mid(exAsp(C00_000XB_POSG, 12), 1, 3))       '@@8001 EX.NAGAO UPD
+        If 1 <= POS_W And POS_W <= 999 Then
+        Else
+            C00_000XB_PERG = "1"                                '@@8001 EX.NAGAO UPD
+            Exit Sub
+        End If
+        ' 前から４桁目チェック
+        If (Mid(exAsp(C00_000XB_POSG, 12), 4, 1) <= " ") Or (Mid(exAsp(C00_000XB_POSG, 12), 4, 1) = "-") Then       '@@8001 EX.NAGAO UPD
+        Else
+            C00_000XB_PERG = "1"                                                                                    '@@8001 EX.NAGAO UPD
+            Exit Sub
+        End If
+        ' ”－”で５桁目＝スペース
+        If (Mid(exAsp(C00_000XB_POSG, 12), 4, 1) = "-") And (Mid(exAsp(C00_000XB_POSG, 12), 5, 1) <= " ") Then      '@@8001 EX.NAGAO UPD
+            C00_000XB_PERG = "1"                                                                                    '@@8001 EX.NAGAO UPD
+            Exit Sub
+        End If
+    End Sub
+    Function CHK_TANI(ByRef W_TANI As String) As String
+        '*********************************** 単位がキログラムかどうかチェックする
+        ' W_TANI : チェック対象　単位
+        Dim W_TANI2 As String = ""                                         '@@8001 EX.NAGAO UPD
+        CHK_TANI = ""
+        '
+        If (Mid(W_TANI, 1, 1) = "K") Or (Mid(W_TANI, 1, 1) = "k") Or (Mid(W_TANI, 1, 1) = "Ｋ") Or (Mid(W_TANI, 1, 1) = "ｋ") Then
+            Mid(W_TANI2, 1, 1) = "K"                              '@@8001 EX.NAGAO UPD
+        End If
+        If (Mid(W_TANI, 2, 1) = "G") Or (Mid(W_TANI, 2, 1) = "g") Or (Mid(W_TANI, 2, 1) = "Ｇ") Or (Mid(W_TANI, 2, 1) = "ｇ") Then
+            Mid(W_TANI2, 2, 1) = "G"                              '@@8001 EX.NAGAO UPD
+        End If
+        If Mid(W_TANI, 1, 2) = "㎏" Then
+            W_TANI2 = "KG"                                        '@@8001 EX.NAGAO UPD
+        End If
+        '
+        If W_TANI2 = "KG" Or Mid(W_TANI, 1, 2) = "㎏" Then        '@@8001 EX.NAGAO UPD
+            CHK_TANI = "KG"
+        End If
+    End Function
+    Sub SET_HAIFN(ByRef WW_STR15 As String, ByRef WW_HAIFN As Short)
+        '**************************************** ハイフンの位置取得
+        For WW_HAIFN = 15 To 1 Step -1
+            If Mid(WW_STR15, WW_HAIFN, 1) = "-" Then
+                Exit For
+            End If
+        Next WW_HAIFN
+    End Sub
+    Sub SET_HAIFN2(ByRef WW_STR15 As String, ByRef WW_HAIFN As Short)
+        '**************************************** ハイフンを挿入する位置
+        For WW_HAIFN = 15 To 1 Step -1
+            If Mid(WW_STR15, WW_HAIFN, 1) <> Space(1) Then
+                WW_HAIFN = WW_HAIFN + 1
+                Exit For
+            End If
+        Next WW_HAIFN
+    End Sub
+    ' EXEから実行されているか、VB IDE内部で実行されているかどうかを返す
+    '   Run4Exe : True = EXE実行
+    '           : False = IDE実行
+    Public Function Run4Exe() As Boolean
+        'EXE実行と仮定
+        Run4Exe = True
+        '@@UPG.NET(DEL/S)
+        '        On Error GoTo IDEERROR
+        '        '0で除算する（IDE内では失敗する）
+        '        System.Diagnostics.Debug.WriteLine(1 / 0)
+        '        Exit Function
+        'IDEERROR:
+        '        Run4Exe = False
+        '@@UPG.NET(DEL/E)
+#If DEBUG Then
+        Run4Exe = False
+#End If
+    End Function
+    'マスタリストで使用するFrom、Toの指定によるWHERE句を返す
+    '@19990727 N.Sakurai AddNew
+    Public Function CreateWhereSQL(ByRef sName As String, ByRef sFrom As String, ByRef sTo As String, Optional ByRef eType As DATATYPE = 0) As String
+        Dim sFromWk As String
+        Dim sToWk As String
+        Dim bFromFlg As Boolean 'True:指定あり  False:なし
+        Dim bToFlg As Boolean 'True:指定あり  False:なし
+        CreateWhereSQL = vbNullString
+        'Fromの入力チェック
+        sFromWk = RTrim(sFrom) 'TRIM$ → RTRIM @020312
+        bFromFlg = Len(sFromWk) <> 0
+        'Toの入力チェック
+        sToWk = RTrim(sTo) 'TRIM$ → RTRIM @020312
+        bToFlg = (Len(sToWk) <> 0) And (Left(sToWk, 1) <> "ﾟ")
+        '両方未入力なら作成せず終了
+        If Not (bFromFlg Or bToFlg) Then Exit Function
+        'CHAR型の場合はシングルコーテーションを付加
+        If eType = DATATYPE.CHAR_MEMBER Then
+            If bFromFlg Then
+                sFromWk = "'" & sFromWk & "'"
+            End If
+            If bToFlg Then
+                sToWk = "'" & sToWk & "'"
+            End If
+        End If
+        'SQL文作成
+        If bFromFlg Then
+            If Not bToFlg Then
+                '下限付き範囲指定 (From～)
+                CreateWhereSQL = sName & " >= " & sFromWk
+            ElseIf sFromWk = sToWk Then
+                '特定指定 (From=To)
+                CreateWhereSQL = sName & " = " & sFromWk
+            Else
+                '上限下限付き範囲指定 (From～To)
+                CreateWhereSQL = sName & " BETWEEN " & sFromWk & " AND " & sToWk
+            End If
+        Else
+            '上限付き範囲指定 (～To)
+            CreateWhereSQL = "(" & sName & " IS NULL OR " & sName & " <= " & sToWk & ")"
+        End If
+    End Function
+    'マスタリストで使用するFrom、Toの指定によるWHERE句を返す (日付版)
+    '@19990727 N.Sakurai AddNew
+    Public Function CreateWhereSQL4Date(ByRef sName As String, ByRef sFrom As String, ByRef sTo As String, Optional ByRef sFromDef As String = "", Optional ByRef sToDef As String = "") As String
+        Dim sFromWk As String
+        Dim sToWk As String
+        Dim bFromFlg As Boolean
+        Dim bToFlg As Boolean
+        Const DEFAULTFORMDATE As String = "1901/01/01"
+        Const DEFAULTTODATE As String = "2099/12/31"
+        Const NOTHINGDATE As String = "____/__/__"
+        CreateWhereSQL4Date = vbNullString
+        'デフォルトのチェック
+        If sFromDef = vbNullString Then sFromDef = DEFAULTFORMDATE
+        If sToDef = vbNullString Then sToDef = DEFAULTTODATE
+        'Fromの入力チェック
+        sFromWk = RTrim(sFrom) 'TRIM$ → RTRIM @020312
+        bFromFlg = (Len(sFromWk) <> 0) And ((sFromWk <> sFromDef) And (sFromWk <> NOTHINGDATE))
+        'Toの入力チェック
+        sToWk = RTrim(sTo) 'TRIM$ → RTRIM @020312
+        bToFlg = (Len(sToWk) <> 0) And ((sToWk <> sToDef) And (sToWk <> NOTHINGDATE))
+        '両方未入力なら作成せず終了
+        If Not (bFromFlg Or bToFlg) Then Exit Function
+        'シングルコーテーションを付加
+        If bFromFlg Then
+            sFromWk = "'" & sFromWk & "'"
+        End If
+        If bToFlg Then
+            sToWk = "'" & sToWk & "'"
+        End If
+        'SQL文作成
+        If bFromFlg Then
+            If Not bToFlg Then
+                '下限付き範囲指定 (From～)
+                CreateWhereSQL4Date = sName & " >= " & sFromWk
+            ElseIf sFromWk = sToWk Then
+                '特定指定 (From=To)
+                CreateWhereSQL4Date = sName & " = " & sFromWk
+            Else
+                '上限下限付き範囲指定 (From～To)
+                CreateWhereSQL4Date = sName & " BETWEEN " & sFromWk & " AND " & sToWk
+            End If
+        Else
+            '上限付き範囲指定 (～To)
+            CreateWhereSQL4Date = "(" & sName & " IS NULL OR " & sName & " <= " & sToWk & ")"
+        End If
+    End Function
+    '@@8001 EX.NAGAO DELETE START
+    ''マスタリストで使用するチェックボックスの指定によるWHERE句を返す
+    ''@19990728 N.Sakurai AddNew
+    'Public Function CreateWhereSQL4CheckBox(ByVal sStrCol() As String, ByVal chkArray As VB6.CheckBoxArray) As String
+    '    Dim swk As String
+    '    '@@UPG.NET(DEL/S)
+    '    'Dim Con As Control
+    '    'For Each Con In frmChk.Controls
+    '    '    With Con
+    '    '        If .Name = sName Then        '対象のチェックボックス
+    '    '            If .Value = 1 Then       '検索対象
+    '    '                swk = sStrCol(.Index) & "," & swk
+    '    '            End If
+    '    '        End If
+    '    '    End With
+    '    'Next
+    '    '@@UPG.NET(DEL/E)
+    '    swk = ""            '@@8001 EX KAJI ADD
+    '    For i As Short = 0 To chkArray.Count - 1
+    '        If chkArray(i).Checked Then          '検索対象
+    '            swk = sStrCol(i) & "," & swk
+    '        End If
+    '    Next
+    '    If swk <> vbNullString Then
+    '        swk = Left(swk, Len(swk) - 1) '最後の , を外す
+    '        swk = "'1' IN (" & swk & ")"
+    '    End If
+    '    CreateWhereSQL4CheckBox = swk
+    'End Function
+    '@@8001 EX.NAGAO DELETE END
+    'マスタリストで使用するFrom、Toの指定によるWHERE句を返す (日付版)
+    '@19990727 N.Sakurai AddNew
+    Public Function ChainSQL(ByRef sSrc As String, ByRef sDest As String) As String
+        ChainSQL = ""               '@@8001 EX KAJI ADD
+        If sDest <> vbNullString Then
+            If sSrc <> vbNullString Then '追加文字列が存在する
+                ChainSQL = sSrc & " AND " & sDest
+            Else
+                ChainSQL = sDest
+            End If
+        Else
+            If sSrc <> vbNullString Then
+                ChainSQL = sSrc
+            End If
+        End If
+    End Function
