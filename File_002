@@ -1,0 +1,351 @@
+      '------------------------------------------------ メッセージボックス
+        'Select Case OraDatabase.LastServerErr '20150608 ECT LIUSW MOD
+        Select Case Sql_Code
+            Case 54
+                MsgBox("データは使用中です。", MsgBoxStyle.Exclamation)
+            Case 1
+                MsgBox("同一の設定内容が既に登録されています。", MsgBoxStyle.Exclamation)
+            Case Else
+                'MsgBox(OraDatabase.LastServerErrText, MsgBoxStyle.Exclamation)
+                MsgBox(Sql_Err, MsgBoxStyle.Exclamation) '20150608 ECT LIUSW MOD
+        End Select
+        'Sql_Code = OraDatabase.LastServerErr '@001018 '20150608 ECT LIUSW DEL
+    End Sub
+    Sub C00_000XA_Result()
+        '**************************************
+        Dim sb As StringBuilder = New StringBuilder(256)
+        Dim ret As UInt32
+        C00_000XA = New DFW_C00_000X.C00_000XC
+        '------------------------------------- 基準情報取得
+        Company = ""
+        Licence = ""
+        IniDrive = ""
+        IniFile = ""
+        Result = C00_000XA.Init(Company, Licence, IniDrive, IniFile)
+        '------------------------------------- Ｉｎｉファイル（現）取得
+        ' サービス
+        ret = GetPrivateProfileString("DFW", "DFW_SERV", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile)
+        Save_Serv = sb.ToString
+        ' ユーザー
+        ret = GetPrivateProfileString("DFW", "DFW_USER", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile)
+        Save_User = sb.ToString
+        ' パスワード
+        ret = GetPrivateProfileString("DFW", "DFW_PASS", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile)
+        Save_Pass = sb.ToString
+        '@@7001 S.SUZUKI ↓
+        '' ＯＤＢＣ
+        'ret = GetPrivateProfileString("DFW", "DFW_ODBC", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile)
+        'Save_Odbc = sb.ToString
+        '@@7001 S.SUZUKI ↑
+        ' CrystalReports(Path)
+        ret = GetPrivateProfileString("DFW", "DFW_CRW", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile)
+        Save_Crpt = sb.ToString
+        ' ＥＸＥ(Path)
+        ret = GetPrivateProfileString("DFW", "DFW_EXE", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile)
+        Save_Exe = sb.ToString
+        ' ＳＱＬ(Path)
+        ret = GetPrivateProfileString("DFW", "DFW_SQL", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile) '@@UPG.NET(DEL)
+        Save_Sql = sb.ToString
+        ' ＤＬＬ(Path)
+        ret = GetPrivateProfileString("DFW", "DFW_DLL", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile) '@@0039 HIRASAWA '@@UPG.NET(DEL)
+        
+	Save_Dll = sb.ToString
+        '@@7100 ENG ARAKAKI DEL↓
+        ' メニュー
+        'ret = GetPrivateProfileString("DFW", "DFW_MENU", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile) '@@UPG.NET(DEL)
+        'Save_MENU = sb.ToString
+        '@@7100 ENG ARAKAKI DEL↑
+        '@@7100 ENG ARAKAKI INS↓
+        ' オペレータ
+        ret = GetPrivateProfileString("DFW", "DFW_OPERAETOR", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile)
+        Save_Ope = sb.ToString
+        ' 日付既定値
+        ret = GetPrivateProfileString("DFW", "DFW_DATE", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile)
+        Save_Date = sb.ToString
+        ' オペレータ既定値F
+        ret = GetPrivateProfileString("DFW", "DFW_OPERATOR_PRE", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile)
+        Save_Ope_Pre = sb.ToString
+        '@@7100 ENG ARAKAKI INS↑
+        '20150311 ADDED BY ZHUSAIE BEGIN
+        ret = GetPrivateProfileString("DFW", "DFW_MANZOU_SEND_PATH", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile)
+        Manzou_Send_Path = sb.ToString
+
+        ret = GetPrivateProfileString("DFW", "DFW_MANZOU_RECEIVE_PATH", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile)
+        Manzou_Receiver_Path = sb.ToString
+        '20150311 ADDED BY ZHUSAIE END
+        '20160109 FJN VAN-KV ADD START
+        ' ＭＡＮＺのユーザー
+        ret = GetPrivateProfileString("MANZ", "MANZ_USER", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile)
+        Manz_User = sb.ToString
+        ' ＭＡＮＺのパスワード
+        ret = GetPrivateProfileString("MANZ", "MANZ_PASS", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile)
+        Manz_Pass = sb.ToString
+        '20160109 FJN VAN-KV ADD END
+        '20150603 LIUSW ADD BEGIN
+        Try
+            Computer_Name = Environment.GetEnvironmentVariable("CLIENTNAME") + " "
+
+            If Len(Computer_Name.TrimEnd) = 0 Or Computer_Name.ToUpper = "CONSOLE" Then
+                '------------------------------------- コンピューター名を設定
+                Computer_Name = System.Windows.Forms.SystemInformation.ComputerName
+            End If
+        Catch ex As Exception
+            Computer_Name = ""
+        End Try
+        '20150603 LIUSW ADD END
+        '-------------------------------------
+        ExeDrive = Save_Exe
+        '-------------------------------------------
+        C00_000XA = Nothing
+    End Sub
+    Sub GEQ_C20C()
+        '************************************* SQL文発行
+        Str_Sql = "SELECT SEQ_LOGJNL.Nextval FROM Dual"
+        '------------------------------------- レコードセット
+        '    Set DUAL_Dynaset = OraDatabase.DbcreateDynaset(Str_Sql, 0&)                '@020705
+        System.GC.Collect()
+        'DUAL_Dynaset = OraDatabase.DbcreateDynaset(Str_Sql, DynasetFlags.OraDyn_ReadOnly) '@020705
+        DUAL_Dt = OraDatabase.DataTable(Str_Sql) '20160516 MODIFIED BY ECT LIUSW
+        '------------------------------------- SQL文発行
+        Str_Sql = "SELECT NVL(SEQ,0) AS SEQ"
+        Str_Sql = Str_Sql & ",NVL(日付,' ') AS 日付"
+        Str_Sql = Str_Sql & ",NVL(時間,' ') AS 時間"
+        Str_Sql = Str_Sql & ",NVL(プログラム,' ') AS プログラム"
+        Str_Sql = Str_Sql & ",NVL(コンピュータ,' ') AS コンピュータ"
+        Str_Sql = Str_Sql & ",NVL(動作K,' ') AS 動作K"
+        Str_Sql = Str_Sql & ",NVL(SEQ1,0) AS SEQ1"
+        Str_Sql = Str_Sql & ",NVL(SEQ2,0) AS SEQ2"
+        Str_Sql = Str_Sql & ",NVL(製番,' ') AS 製番"
+        Str_Sql = Str_Sql & " FROM DFW_C20C"
+        'Str_Sql = Str_Sql & " WHERE SEQ = '" & DUAL_Dynaset.Fields("Nextval").Value & "'"
+        Str_Sql = Str_Sql & " WHERE SEQ = '" & DUAL_Dt.Rows(0).Item("Nextval") & "'"  '20160516 MODIFIED BY ECT LIUSW
+        '------------------------------------- レコードセット
+        System.GC.Collect()
+        'C20C_Dynaset = OraDatabase.DbcreateDynaset(Str_Sql, 2)
+        C20C_Dt = OraDatabase.DataTable(Str_Sql)  '20160516 MODIFIED BY ECT LIUSW
+    End Sub
+	'Sub GEQ_C40C()
+    Sub GEQ_C40C(Optional ByVal lockFlag As String = "")  '20160516 MODIFIED BY ECT WANGWW
+        'On Error GoTo GEQ_C40C_10   '20160516 DELETE BY ECT LIUSW
+        '-------------------------------------
+        SW_Err = ""
+        '------------------------------------- SQL文発行
+        Str_Sql = "SELECT NVL(コンピュータ,' ') AS コンピュータ"
+        Str_Sql = Str_Sql & ",NVL(プログラム,' ') AS プログラム"
+        Str_Sql = Str_Sql & ",NVL(作業F,' ') AS 作業F"
+        Str_Sql = Str_Sql & ",NVL(製番,' ') AS 製番"
+        Str_Sql = Str_Sql & ",NVL(構成ID,' ') AS 構成ID"
+        Str_Sql = Str_Sql & ",NVL(手配ID,' ') AS 手配ID"
+        Str_Sql = Str_Sql & ",NVL(工順,0) AS 工順"
+        Str_Sql = Str_Sql & ",NVL(X31,' ') AS X31"
+        Str_Sql = Str_Sql & ",NVL(品目K,' ') AS 品目K"
+        Str_Sql = Str_Sql & ",NVL(品目C,' ') AS 品目C"
+        Str_Sql = Str_Sql & ",NVL(図面番号,' ') AS 図面番号"
+        Str_Sql = Str_Sql & ",NVL(場所C,' ') AS 場所C"
+        Str_Sql = Str_Sql & ",NVL(業者C,' ') AS 業者C"
+        Str_Sql = Str_Sql & ",NVL(得意先C,' ') AS 得意先C"
+        Str_Sql = Str_Sql & ",NVL(取引先C,' ') AS 取引先C"
+        Str_Sql = Str_Sql & ",NVL(担当C,' ') AS 担当C"
+        Str_Sql = Str_Sql & ",NVL(部署,' ') AS 部署"
+        Str_Sql = Str_Sql & ",NVL(工程,' ') AS 工程"
+        Str_Sql = Str_Sql & ",NVL(機械,' ') AS 機械"
+        Str_Sql = Str_Sql & ",NVL(手配K,' ') AS 手配K"
+        Str_Sql = Str_Sql & " FROM DFW_C40C"
+        Str_Sql = Str_Sql & " WHERE コンピュータ = '" & Work_Computer & "'"
+        Str_Sql = Str_Sql & " AND プログラム = '" & Call_Program & "'"
+        If lockFlag = "" Then  '20160516 ADDED BY ECT WANGWW
+            Str_Sql = Str_Sql & " FOR UPDATE NOWAIT"
+        End If
+        '------------------------------------- レコードセット
+        System.GC.Collect()
+        '20160516 MODIFIED BY ECT LIUSW START
+        'C40C_Dynaset = OraDatabase.DbcreateDynaset(Str_Sql, 2)
+        Try
+            'OraDatabase.ReStart() '20160725 ADDED BY YUANCHAO '20160809 DELETED BY XIAXUE
+            C40C_Dt = OraDatabase.dataTable(Str_Sql)
+        Catch ex As OracleException
+            SW_Err = 1
+            MsgBox("該当レコードは使用中の為、処理が行えません。")
+        End Try
+        '20160516 MODIFIED BY ECT LIUSW END
+        '-------------------------------------
+        Exit Sub
+        '20160516 DELETE BY ECT LIUSW START
+        'GEQ_C40C_10:
+        'MsgBox("該当レコードは使用中の為、処理が行えません。")
+        'SW_Err = "1"
+        '20160516 DELETE BY ECT LIUSW END
+    End Sub
+    Sub CLR_C20C()
+        '*************************************
+    End Sub
+    Sub CLR_C40C()
+        '*************************************
+        C40C.コンピュータ = Work_Computer
+        C40C.プログラム = Call_Program        '@@8001 EX.NAGAO UPD START
+        C40C.作業F = " "
+        C40C.製番 = " "
+        C40C.構成ID = " "
+        C40C.手配ID = " "                     '@@8001 EX.NAGAO UPD END
+        C40C.工順 = CShort("0")
+        C40C.X31 = " "                        '@@8001 EX.NAGAO UPD START
+        C40C.品目K = " "
+        C40C.品目C = " "
+        C40C.図面番号 = " "
+        C40C.場所C = " "
+        C40C.業者C = " "
+        C40C.得意先C = " "
+        C40C.取引先C = " "
+        C40C.担当C = " "
+        C40C.部署 = " "
+        C40C.工程 = " "
+        C40C.機械 = " "
+        C40C.手配K = " "                      '@@8001 EX.NAGAO UPD END
+    End Sub
+    Public Function oo_NullZero(ByRef WW_INPUT As Object) As Object '@000829 UDA
+        If RTrim(WW_INPUT) = "" Then 'TRIM → RTRIM @020312
+            oo_NullZero = 0
+        Else
+            oo_NullZero = WW_INPUT
+        End If
+    End Function
+    Sub UPD_C20C(Optional ByVal Q_動作K As String = "", Optional ByVal Q_SEQ1 As String = "", Optional ByVal Q_SEQ2 As String = "",
+                 Optional ByVal Q_製番 As String = "", Optional ByVal Q_KEY01 As String = "", Optional ByVal Q_KEY02 As String = "",
+                 Optional ByVal Q_KEY03 As String = "", Optional ByVal Q_KEY04 As String = "", Optional ByVal Q_KEY05 As String = "")
+        '************************************* ログインジャーナル更新  処理
+        'P_ERRCDが重複している為、ユニークなパラメータ名変更
+        Dim Ww_ErrCd As Integer
+        Dim Ww_ErrTx As String
+        '-------------------------------------
+        If RTrim(Q_動作K) = "" Then
+            Q_動作K = FLG_動作K
+            Q_SEQ1 = FLG_SEQ1
+            Q_SEQ2 = FLG_SEQ2
+            Q_製番 = FLG_製番
+        End If
+        '20141111 事業部別追加要望PJ管理台帳0021 ADDED BY XIAXUE BEGIN
+        If RTrim(Q_動作K) = "1" OrElse RTrim(Q_動作K) = "2" OrElse RTrim(Q_動作K) = "3" Then
+            If CHECK_LOGIN() Then
+                FLG_Roll = "1"
+                Exit Sub
+            End If
+        End If
+        Work_Program = IO.Path.GetFileNameWithoutExtension(System.Reflection.Assembly.GetExecutingAssembly.Location) 
+        If オペレータ Is Nothing Then
+            オペレータ = ""
+        End If
+        Dim parass(13) As OracleClient.OracleParameter
+        parass(0) = OraDatabase.NewInputStrPara("P_プログラム", 20, Work_Program)
+        parass(1) = OraDatabase.NewInputStrPara("P_コンピュータ", 20, Work_Computer)
+        parass(2) = OraDatabase.NewInputStrPara("P_動作K", 1, Q_動作K)
+        parass(3) = OraDatabase.NewInputStrPara("P_オペレータ", 6, オペレータ)
+        '20160628 MODIFIED BY ECT WANGWW START
+        'parass(4) = OraDatabase.NewInputNumPara("P_SEQ1", 10, Q_SEQ1)
+        'parass(5) = OraDatabase.NewInputNumPara("P_SEQ2", 2, Q_SEQ2)
+        parass(4) = OraDatabase.NewInputStrPara("P_SEQ1", 10, Q_SEQ1)
+        parass(5) = OraDatabase.NewInputStrPara("P_SEQ2", 2, Q_SEQ2)
+        '20160628 MODIFIED BY ECT WANGWW END
+        parass(6) = OraDatabase.NewInputStrPara("P_製番", 40, Q_製番)
+        parass(7) = OraDatabase.NewInputStrPara("P_KEY01", 40, Q_KEY01)
+        parass(8) = OraDatabase.NewInputStrPara("P_KEY02", 40, Q_KEY02)
+        parass(9) = OraDatabase.NewInputStrPara("P_KEY03", 40, Q_KEY03)
+        parass(10) = OraDatabase.NewInputStrPara("P_KEY04", 40, Q_KEY04)
+        parass(11) = OraDatabase.NewInputStrPara("P_KEY05", 40, Q_KEY05)
+        parass(12) = OraDatabase.NewPara("P_ERRCD", OracleType.Number, 10, ParameterDirection.InputOutput, 0)
+        parass(13) = OraDatabase.NewPara("P_ERRTX", OracleType.Char, 2000, ParameterDirection.InputOutput, " ")
+        '----------------------------------------------- ログインジャーナル更新
+        '20151116 DELETED BY XIAOHY START
+        ''20150930 FJN VAN-KV ADD START
+        'If Q_動作K = "0" Then
+        '    Str_Sql = "INSERT INTO CYG_INFO_TEMP(OPERATOR_CD, PROGRAM_ID) VALUES('" & オペレータ & "','" & Work_Program & "') "
+        '    OraDatabase.DbExecuteSQL(Str_Sql)
+        'End If
+        ''20150930 FJN VAN-KV ADD END
+        '20151116 DELETED BY XIAOHY END
+        ''20151116 ADDED BY XIAOHY START
+        'Str_Sql = "SELECT COUNT(1) AS 件数 FROM CYG_INFO_TEMP WHERE PROGRAM_ID='" & Work_Program & "'"
+        'Dim TEMP_Dynaset As Object = Nothing
+        'TEMP_Dynaset = OraDatabase.DbcreateDynaset(Str_Sql, DynasetFlags.OraDyn_DFW_Default)
+        ''ログインユーザーの「オペレータ区分」を確認。70なら処理スキップ（メンテナンスモードにしない）。
+        'If TEMP_Dynaset!件数.Value <> 0 Then
+        '    Str_Sql = "UPDATE CYG_INFO_TEMP SET OPERATOR_CD='" & オペレータ & "' WHERE PROGRAM_ID='" & Work_Program & "'"
+        '    OraDatabase.DbExecuteSQL(Str_Sql)
+        'Else
+        '    Str_Sql = "INSERT INTO CYG_INFO_TEMP(OPERATOR_CD, PROGRAM_ID) VALUES('" & オペレータ & "','" & Work_Program & "') "
+        '    OraDatabase.DbExecuteSQL(Str_Sql)
+        'End If
+        ''20151116 ADDED BY XIAOHY END
+        '20151116 ADDED BY XIAOHY START
+        Str_Sql = "SELECT COUNT(1) AS 件数 FROM CYG_INFO_TEMP WHERE PROGRAM_ID='" & Work_Program & "'"
+        Dim 件数 As Object = Nothing
+        件数 = OraDatabase.Value(Str_Sql)
+        'ログインユーザーの「オペレータ区分」を確認。70なら処理スキップ（メンテナンスモードにしない）。
+        If 件数 <> 0 Then
+            Str_Sql = "UPDATE CYG_INFO_TEMP SET OPERATOR_CD='" & オペレータ & "' WHERE PROGRAM_ID='" & Work_Program & "'"
+            OraDatabase.executeSql(Str_Sql)
+        Else
+            Str_Sql = "INSERT INTO CYG_INFO_TEMP(OPERATOR_CD, PROGRAM_ID) VALUES('" & オペレータ & "','" & Work_Program & "') "
+            OraDatabase.executeSql(Str_Sql)
+        End If
+        '20151116 ADDED BY XIAOHY END
+        OraDatabase.CallProcedure("C00_C20C.UPD_C20C", parass)
+        If parass(12).Value <> 0 Then
+            MsgBox("異常発生！！ " & vbCrLf & "SQLCODE=" & parass(12).Value & vbCrLf & parass(13).Value, MsgBoxStyle.OkOnly + MsgBoxStyle.Exclamation)
+            FLG_Roll = "1"
+        End If
+        '20160516 MODIFIED BY ECT LIUSW END
+    End Sub
+    '-------------------------------------------------------------- '@@7100 ENG YONASHIRO ↑
+
+    Sub UPD_C20C_INS()
+        '******************************************* ＩＮＳＥＲＴ
+        If IsDBNull(FLG_製番) Then
+            FLG_製番 = ""
+        End If
+        '------------------------------------------- SQL文発行
+        Str_Sql = "INSERT INTO DFW_C20C "
+        Str_Sql = Str_Sql & "(SEQ"
+        Str_Sql = Str_Sql & ",日付"
+        Str_Sql = Str_Sql & ",時間"
+        Str_Sql = Str_Sql & ",プログラム"
+        Str_Sql = Str_Sql & ",コンピュータ"
+        Str_Sql = Str_Sql & ",動作K"
+        Str_Sql = Str_Sql & ",SEQ1"
+        Str_Sql = Str_Sql & ",SEQ2"
+        Str_Sql = Str_Sql & ",製番)"
+        Str_Sql = Str_Sql & " VALUES "
+        Str_Sql = Str_Sql & "('" & DUAL_Dynaset.Fields("Nextval").Value & "'"
+        'Str_Sql = Str_Sql & ",'" & VB6.Format(Today, "YYYY/MM/DD") & "'"                   '@@8001 EX.NAGAO DELETE
+        'Str_Sql = Str_Sql & ",'" & VB6.Format(TimeOfDay, "HH:MM:SS") & "'"                 '@@8001 EX.NAGAO DELETE
+        Str_Sql = Str_Sql & ",'" & String.Format("{0:yy/MM/dd}", Today) & "'"               '@@8001 EX.NAGAO ADD
+        Str_Sql = Str_Sql & ",'" & String.Format("{0:HH:mm:ss}", TimeOfDay) & "'"           '@@8001 EX.NAGAO ADD
+        Str_Sql = Str_Sql & ",'" & Work_Program & "'"
+        Str_Sql = Str_Sql & ",'" & Work_Computer & "'"
+        Str_Sql = Str_Sql & ",'" & FLG_動作K & "'"
+        Str_Sql = Str_Sql & ",'" & FLG_SEQ1 & "'"
+        Str_Sql = Str_Sql & ",'" & FLG_SEQ2 & "'"
+        Str_Sql = Str_Sql & ",'" & FLG_製番 & "')"
+        '-------------------------------------------
+        OraDatabase.DbExecuteSQL(Str_Sql)
+        '-------------------------------------------
+    End Sub
+    Sub UPD_C20C_UPD()
+        '******************************************* ＵＰＤＡＴＥ
+        '------------------------------------------- SQL文発行
+        Str_Sql = "UPDATE DFW_C20C SET"
+        Str_Sql = Str_Sql & " SEQ = '" & DUAL_Dynaset.Fields("Nextval").Value & "'"
+        'Str_Sql = Str_Sql & ",日付 = '" & VB6.Format(Today, "YYYY/MM/DD") & "'"            '@@8001 EX.NAGAO DELETE
+        'Str_Sql = Str_Sql & ",時間 = '" & VB6.Format(TimeOfDay, "HH:MM:SS") & "'"          '@@8001 EX.NAGAO DELETE
+        Str_Sql = Str_Sql & ",日付 = '" & String.Format("{0:yy/MM/dd}", Today) & "'"        '@@8001 EX.NAGAO ADD
+        Str_Sql = Str_Sql & ",時間 = '" & String.Format("{0:HH:mm:ss}", TimeOfDay) & "'"    '@@8001 EX.NAGAO ADD
+        Str_Sql = Str_Sql & ",プログラム = '" & Work_Program & "'"
+        Str_Sql = Str_Sql & ",コンピュータ = '" & Work_Computer & "'"
+        Str_Sql = Str_Sql & ",動作K = '" & FLG_動作K & "'"
+        Str_Sql = Str_Sql & ",SEQ1 = '" & FLG_SEQ1 & "'"
+        Str_Sql = Str_Sql & ",SEQ2 = '" & FLG_SEQ2 & "'"
+        Str_Sql = Str_Sql & ",製番 = '" & FLG_製番 & "'"
+        Str_Sql = Str_Sql & " WHERE SEQ = '" & DUAL_Dynaset.Fields("Nextval").Value & "'"
+        '-------------------------------------------
+        OraDatabase.DbExecuteSQL(Str_Sql)
+        '-------------------------------------------
+    End Sub
