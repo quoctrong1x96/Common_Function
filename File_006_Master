@@ -1,0 +1,267 @@
+Option Strict Off
+Option Explicit On
+Imports System
+Imports System.Text
+Imports System.Runtime.InteropServices
+Imports System.Data.OracleClient
+
+Public Module C00_010XB
+    Public OraDynaset As Object
+
+#Region "定数定義"
+    Public Const C_工程単価分類_転写 As String = "20"
+    Public Const C_工程単価分類_IMD As String = "3"
+
+#End Region
+
+    Public Function Get_Seq2(ByRef A_ErrCd As Long, ByRef A_ErrTx As String, ByRef A_採番Seq As String, _
+                            ByVal Q_採番Mode As String, ByVal Q_ファイルId As String, ByVal Q_項目名 As String, Optional ByVal Q_採番日付 As String = " ", _
+                            Optional ByVal Q_採番単位1 As String = " ", Optional ByVal Q_採番単位2 As String = " ", Optional ByVal Q_採番単位3 As String = " ") As Boolean
+        '******************************************** 採番処理
+        '-------------------------------------------- 初期化
+        If Len(Q_採番日付.TrimEnd) = 0 Then
+            Q_採番日付 = " "
+        End If
+        If Len(Q_採番単位1.TrimEnd) = 0 Then
+            Q_採番単位1 = " "
+        End If
+        If Len(Q_採番単位2.TrimEnd) = 0 Then
+            Q_採番単位2 = " "
+        End If
+        If Len(Q_採番単位3.TrimEnd) = 0 Then
+            Q_採番単位3 = " "
+        End If
+        Dim Ww_ErrCd As Integer
+        Dim Ww_ErrTx As String
+        Dim params(9) As OracleParameter
+        params(0) = OraDatabase.NewOutputNumPara("P_ERRCD", 10, 0)
+        params(1) = OraDatabase.NewOutputStrPara("P_ERRTX", 1000, " ")
+        params(2) = OraDatabase.NewOutputStrPara("P_SEQ", 15, " ")
+        params(3) = OraDatabase.NewInputStrPara("P_MODE", 1, Q_採番Mode)
+        params(4) = OraDatabase.NewInputStrPara("P_FILE_ID", 20, Q_ファイルId)
+        params(5) = OraDatabase.NewInputStrPara("P_ITEM_NAME", 100, Q_項目名)
+        params(6) = OraDatabase.NewInputStrPara("P_SAIBAN_DATE", 10, Q_採番日付)
+        params(7) = OraDatabase.NewInputStrPara("P_SAIBAN_TANYI1", 30, Q_採番単位1)
+        params(8) = OraDatabase.NewInputStrPara("P_SAIBAN_TANYI2", 30, Q_採番単位2)
+        params(9) = OraDatabase.NewInputStrPara("P_SAIBAN_TANYI3", 30, Q_採番単位3)
+        OraDatabase.CallProcedure("CYG_C00_CN0C.GET_SEQ", params)
+        If IsDBNull(params(0).Value) Then
+            Ww_ErrCd = 0
+        Else
+            Ww_ErrCd = params(0).Value
+        End If
+        If IsDBNull(params(1).Value) Then
+            Ww_ErrTx = " "
+        Else
+            Ww_ErrTx = params(1).Value
+        End If
+        If Ww_ErrCd <> 0 Then
+            MsgBox("異常発生！！ " & vbCrLf & "SQLCODE=" & Ww_ErrCd & vbCrLf & Ww_ErrTx, MsgBoxStyle.OkOnly + MsgBoxStyle.Exclamation)
+            '20171013 ADDED BY XIAXUE BEGIN
+            A_ErrCd = 2
+            A_ErrTx = "異常発生！！ " & vbCrLf & "SQLCODE=" & Ww_ErrCd & vbCrLf & Ww_ErrTx
+            '20171013 ADDED BY XIAXUE END
+            FLG_Roll = "1"
+            Return False
+        Else
+            A_採番Seq = Trim(params(2).Value)
+            A_ErrCd = Ww_ErrCd '20171013 ADDED BY XIAXUE
+            Return True
+        End If        
+    End Function
+    Public Function Get_OraSeq(ByRef A_ErrCd As Long, ByRef A_ErrTx As String, ByRef A_Seq As Long, ByVal Q_SeqId As String) As Boolean
+        Dim Seq_dr As DataRow
+        '************************************************ OracleシーケンスからSEQ取得
+        ' OracleシーケンスからSEQ取得
+        '================================================
+
+        'Dim Ws_Seq As Long = 0
+        Dim Ww_Sql As String
+        Dim Ww_Sql2 As String
+
+        A_Seq = 0
+        A_ErrCd = 0
+        A_ErrTx = " "
+        '------------------------------------------------
+        Ww_Sql = "SELECT " & Q_SeqId & ".NEXTVAL AS SEQ FROM DUAL"
+        Try
+            Seq_dr = OraDatabase.Row(Ww_Sql)
+            A_Seq = Seq_dr.Item("SEQ")
+        Catch
+            '-------------------------------------------- ｴﾗｰ処理
+            Try
+                Ww_Sql2 = "CREATE SEQUENCE " & Q_SeqId & " START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 999999999999 CYCLE"
+                OraDatabase.CallProcedure((Ww_Sql2))
+
+                Seq_dr = OraDatabase.Row(Ww_Sql, 2)
+                A_Seq = Seq_dr.Item("SEQ")
+            Catch ex As Exception
+                A_ErrCd = 1
+                A_ErrTx = "Oracleシーケンスを取得できませんでした。"
+            End Try
+        Finally
+            OraDynaset = Nothing
+        End Try
+
+        If A_ErrCd = 0 Then
+            Return True
+        Else
+            Return False
+        End If
+
+    End Function
+    Public Sub Get_KTankaLoss(ByRef A_ErrCd As Long,
+                                ByRef A_ErrTx As String,
+                                ByRef A_単価 As Double,
+                                ByRef A_元単価 As Double,
+                                ByRef A_ロス率 As Double,
+                                ByRef A_固定ロス As Double,
+                                ByVal Q_単価適用日 As String,
+                                ByVal Q_単価分類C As String,
+                                ByVal Q_工程C As String,
+                                Optional ByVal Q_基準数1 As Double = 0,
+                                Optional ByVal Q_基準数2 As Double = 0,
+                                Optional ByVal Q_製袋種類C As String = "",
+                                Optional ByVal Q_用紙_巾 As Double = 0,
+                                Optional ByVal Q_用紙_厚み As Double = 0,
+                                Optional ByVal Q_用紙_比重 As Double = 0,
+                                Optional ByVal Q_製袋寸法1 As Double = 0,
+                                Optional ByVal Q_製袋寸法2 As Double = 0,
+                                Optional ByVal Q_製袋寸法3 As Double = 0,
+                                Optional ByVal Q_製袋オプションK As String = "",
+                                Optional ByVal Q_製袋角丸箇所 As Double = 0,
+                                Optional ByVal Q_製袋取得不要F As String = "1",
+                                Optional ByVal Q_仕様書NO As String = "",
+                                Optional ByVal Q_枝番 As String = "")
+
+
+
+        A_ErrCd = 0
+        A_ErrTx = " "
+        A_単価 = 0
+        A_元単価 = 0
+        A_ロス率 = 0
+        A_固定ロス = 0
+      
+        Dim parass(22) As OracleClient.OracleParameter
+        '20171221 MODIFIED BY ECT CHENGMING END
+        parass(0) = OraDatabase.NewOutputNumPara("P_ERRCD", 10, 0)
+        parass(1) = OraDatabase.NewOutputStrPara("P_ERRTX", 2000, " ")
+        parass(2) = OraDatabase.NewOutputNumPara("P_単価", 15, 0)
+        parass(3) = OraDatabase.NewOutputNumPara("P_元単価", 15, 0)
+        parass(4) = OraDatabase.NewOutputNumPara("P_ロス率", 10, 0)
+        parass(5) = OraDatabase.NewOutputNumPara("P_固定ロス", 6, 0)
+        parass(6) = OraDatabase.NewInputStrPara("P_単価適用日", 10, Q_単価適用日)
+        parass(7) = OraDatabase.NewInputStrPara("P_単価分類C", 8, Q_単価分類C)
+        parass(8) = OraDatabase.NewInputStrPara("P_工程C", 40, Q_工程C)
+        parass(9) = OraDatabase.NewInputNumPara("P_基準数1", 13, Q_基準数1)
+        parass(10) = OraDatabase.NewInputNumPara("P_基準数2", 13, Q_基準数2)
+        parass(11) = OraDatabase.NewInputStrPara("P_製袋種類C", 8, Q_製袋種類C)
+        parass(12) = OraDatabase.NewInputNumPara("P_用紙_巾", 8, Q_用紙_巾)
+        parass(13) = OraDatabase.NewInputNumPara("P_用紙_厚み", 7, Q_用紙_厚み)
+        parass(14) = OraDatabase.NewInputNumPara("P_用紙_比重", 7, Q_用紙_比重)
+        parass(15) = OraDatabase.NewInputNumPara("P_製袋寸法1", 15, Q_製袋寸法1)
+        parass(16) = OraDatabase.NewInputNumPara("P_製袋寸法2", 15, Q_製袋寸法2)
+        parass(17) = OraDatabase.NewInputNumPara("P_製袋寸法3", 15, Q_製袋寸法3)
+        parass(18) = OraDatabase.NewInputStrPara("P_製袋オプションK", 8, Q_製袋オプションK)
+        parass(19) = OraDatabase.NewInputNumPara("P_製袋角丸箇所", 15, Q_製袋角丸箇所)
+        parass(20) = OraDatabase.NewInputStrPara("P_製袋取得不要F", 1, Q_製袋取得不要F)
+        '20171221 ADDED BY ECT CHENGMING BEGIN
+        parass(21) = OraDatabase.NewInputStrPara("P_仕様書NO", 12, Q_仕様書NO)
+        parass(22) = OraDatabase.NewInputStrPara("P_枝番", 2, Q_枝番)
+        '20171221 ADDED BY ECT CHENGMING END
+
+        '================================================================PL/SQL処理呼出し
+        OraDatabase.CallProcedure("CYG_C00_NT0M.GET_TANKA_LOSS", parass)
+
+        A_ErrCd = parass(0).Value
+        If Not IsDBNull(parass(1).Value) Then
+            A_ErrTx = parass(1).Value
+        End If
+        If A_ErrCd = 0 Then
+            '---------------------------------------- 正常
+            A_単価 = parass(2).Value
+            A_元単価 = parass(3).Value
+            A_ロス率 = parass(4).Value
+            A_固定ロス = parass(5).Value
+        End If
+       
+
+    End Sub
+
+    '************************************************
+    ' 原反見積り単価の取得
+    '
+    '************************************************
+    Public Sub Get_GJTanka(ByRef A_ErrCd As Long, _
+                                ByRef A_ErrTx As String, _
+                                ByRef A_単価 As Double, _
+                                ByVal Q_原反C As String, _
+                                ByVal Q_見積日 As String)
+        Dim Ww_Sql As String
+        Ww_Sql = "SELECT MAX(N40A.営業見積Ｍ単価) AS 単価 " & _
+                            "FROM CYG_N40M N40A " & _
+                           "WHERE N40A.品目K = 'G' " & _
+                             "AND N40A.原反C = '" & Q_原反C & "' " & _
+                             "AND NVL(N40A.無効F,0)  <> '1'" & _
+                             "AND N40A.単価改定日 = (SELECT MAX(N40B.単価改定日) AS 単価改定日 " & _
+                                                                     "FROM CYG_N40M N40B " & _
+                                                                    "WHERE N40B.品目K = 'G' " & _
+                                                                      "AND N40B.原反C = '" & Q_原反C & "' " & _
+                                                                      "AND N40B.単価改定日 <= '" & Q_見積日 & "' " & _
+                                                                      "AND NVL(N40B.無効F,0)  <> '1')"
+
+        Try
+            OraDynaset = OraDatabase.Row(Ww_Sql)
+            If Not IsDBNull(OraDynaset("単価")) Then
+                '受注入力画面に入力された[受注日] ≧ [CYG_N40M.単価改定日]の場合……[CYG_N40M.営業見積Ｍ単価]
+                A_単価 = OraDynaset("単価")
+            Else
+                Ww_Sql = "SELECT MAX(N40A.旧営業見積Ｍ単価) AS 単価 " & _
+                                    "FROM CYG_N40M N40A " & _
+                                   "WHERE N40A.品目K = 'G' " & _
+                                     "AND N40A.原反C = '" & Q_原反C & "' " & _
+                                     "AND NVL(N40A.無効F,0)  <> '1'" & _
+                                     "AND N40A.単価改定日 = (SELECT MIN(N40B.単価改定日) AS 単価改定日 " & _
+                                                                             "FROM CYG_N40M N40B " & _
+                                                                            "WHERE N40B.品目K = 'G' " & _
+                                                                              "AND N40B.原反C = '" & Q_原反C & "' " & _
+                                                                              "AND N40B.単価改定日 > '" & Q_見積日 & "' " & _
+                                                                              "AND NVL(N40B.無効F,0)  <> '1')"
+
+                OraDynaset = OraDatabase.Row(Ww_Sql)
+                A_単価 = OraDynaset("単価")
+                '20160817 MODIFIED BY XIAXUE END
+            End If
+            '20140704 ADDED BY XIAOHY END
+        Catch ex As Exception
+            A_ErrTx = ex.Message
+        End Try
+
+    End Sub
+
+    Public Sub HandleException(ByRef Q_Exception As Exception, Optional ByVal Q_LckFailedMsg As String = "")
+        '************************************************ オラクル例外・システム例外のメッセージ表示
+        If (TypeOf Q_Exception Is System.Data.OracleClient.OracleException) Then
+            Dim Ww_OraExp As System.Data.OracleClient.OracleException = Q_Exception
+
+            Select Case Ww_OraExp.Code
+                Case 54
+                    If Q_LckFailedMsg = "" Then
+                        MsgBox("該当データは使用中です。", MsgBoxStyle.Critical)
+                    Else
+                        MsgBox(Q_LckFailedMsg, MsgBoxStyle.Critical)
+                    End If
+                Case 1
+                    MsgBox("同一の設定内容が既に登録されています。", MsgBoxStyle.Critical)
+                Case Else
+                    MsgBox(Ww_OraExp.Message, MsgBoxStyle.Critical)
+            End Select
+
+        Else
+            MsgBox(Q_Exception.Message, MsgBoxStyle.Critical)
+        End If
+
+    End Sub
+
+End Module
