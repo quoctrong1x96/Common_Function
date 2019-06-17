@@ -1,0 +1,246 @@
+
+            Str_Sql = Str_Sql & ",'" & .面付_有効巾 & "'"
+            Str_Sql = Str_Sql & ",'" & .面付_余り & "'"
+            Str_Sql = Str_Sql & ",'" & .仕上形態K & "'"
+            Str_Sql = Str_Sql & ",'" & .ノッチF & "'"
+            Str_Sql = Str_Sql & ",'" & .フック穴F & "'"
+            Str_Sql = Str_Sql & ",'" & .船底シールF & "'"
+            Str_Sql = Str_Sql & ",'" & .ラベルシールF & "'"
+            Str_Sql = Str_Sql & ",'" & .アールシールF & "'"
+            Str_Sql = Str_Sql & ",'" & .プラマーク入れF & "'"
+            Str_Sql = Str_Sql & ",'" & .空気穴F & "'"
+            Str_Sql = Str_Sql & ",'" & .コーナーカットF & "'"
+            Str_Sql = Str_Sql & ",'" & .コーナーカット箇所 & "'"
+            Str_Sql = Str_Sql & ",'" & .チャック口開けF & "'"
+            Str_Sql = Str_Sql & ",'" & .見積明細書発行F & "'"
+            Str_Sql = Str_Sql & ",'" & .見積明細書発行日 & "'"
+            Str_Sql = Str_Sql & ",'" & .削除F & "'"
+            Str_Sql = Str_Sql & ",'" & .新規登録日 & "'"
+            Str_Sql = Str_Sql & ",'" & .最終変更日 & "'"
+            Str_Sql = Str_Sql & ",'" & .納入形態単位 & "'"
+            Str_Sql = Str_Sql & ",'" & .納入形態入数 & "'"
+            Str_Sql = Str_Sql & ",'" & .納入形態入数単位 & "'"
+            Str_Sql = Str_Sql & ",'" & .CREATED_BY & "'"
+            Str_Sql = Str_Sql & ",TO_DATE('" & .CREATION_DATE.ToString & "','" & Wg_DateFmt & "')"
+            Str_Sql = Str_Sql & ",'" & .LAST_UPDATED_BY & "'"
+            Str_Sql = Str_Sql & ",TO_DATE('" & .LAST_UPDATE_DATE.ToString & "','" & Wg_DateFmt & "')"
+            Str_Sql = Str_Sql & ",'" & .LAST_UPDATE_PROGRAMID & "'"
+            Str_Sql = Str_Sql & ")"
+        End With
+        '------------------------------------------------
+        OraDatabase.DbExecuteSQL(Str_Sql)
+        '------------------------------------------------
+        Exit Sub
+INS_A10F_10:
+        '================================================ オラクルエラー処理                     '
+        Call oo_OrErr(Sql_Code)
+    End Sub
+
+    Sub LCK_A10()
+        '************************************************
+        Str_Sql = "SELECT * FROM CYG_A10F WHERE 見積NO = '" & A10F_SEQ & "' FOR UPDATE"
+        '------------------------------------------------ レコードセット
+        System.GC.Collect()
+        A10F_Dynaset = OraDatabase.DbcreateDynaset(Str_Sql, 0)
+        '------------------------------------------------
+        If A10F_Dynaset.RecordCount = 0 Then
+            A10F_FLG = "1"
+        Else
+            If A10F_SEQ = 999999 Then
+                A10F_SEQ = 1
+            Else
+                A10F_SEQ = A10F_SEQ + 1
+            End If
+        End If
+    End Sub
+
+    Sub MAX_A10(ByVal KBN As String)
+        Dim W_採番SEQ As Long
+        Dim W_DUMMY As String
+        Dim W_ERRCD As Long
+        Dim W_ERRTX As String
+        W_DUMMY = ""            '@@8001 EX KAJI ADD
+        W_ERRTX = ""            '@@8001 EX KAJI ADD
+        If Get_Seq(KBN, "CYG_A10F", "", "見積NO", W_採番SEQ, W_DUMMY, W_ERRCD, W_ERRTX) = True Then
+            A10F_SEQ = W_採番SEQ
+        Else
+            MsgBox("採番ｴﾗｰ！！(" & W_ERRCD & ") " & RTrim(W_ERRTX), MsgBoxStyle.Exclamation)
+        End If
+        '----------------------------------------------------------- @@7001 DSK KIKKAWA↑
+    End Sub
+    Sub SET_A10F() '@990122
+        '************************************************ SET
+        With A10F_Dynaset
+            A10F.見積NO = (!見積NO).VALUE
+            A10F.XA1 = (!XA1).VALUE
+            A10F.見積K = (!見積K).VALUE
+            A10F.見積日 = (!見積日).VALUE
+            A10F.納期 = (!納期).VALUE
+            A10F.見積有効期限 = (!見積有効期限).VALUE
+            A10F.得意先C = (!得意先C).VALUE
+            A10F.得意先名 = (!得意先名).VALUE
+            A10F.部署C = (!部署C).VALUE
+            A10F.営業担当者C = (!営業担当者C).VALUE
+            A10F.品名 = (!品名).VALUE
+            A10F.見積数量 = (!見積数量).VALUE
+            A10F.見積数量単位 = (!見積数量単位).VALUE
+            A10F.納入形態数 = (!納入形態数).VALUE
+            A10F.納入形態数単位 = (!納入形態数単位).VALUE
+            A10F.仕上数量 = (!仕上数量).VALUE
+            A10F.印刷数量 = (!印刷数量).VALUE
+            A10F.備考 = (!備考).VALUE
+            A10F.仕上寸法_巾 = (!仕上寸法_巾).VALUE
+            A10F.仕上寸法_マチ = (!仕上寸法_マチ).VALUE
+            A10F.仕上寸法_長さ = (!仕上寸法_長さ).VALUE
+            A10F.展開寸法_横 = (!展開寸法_横).VALUE
+            A10F.展開寸法_縦 = (!展開寸法_縦).VALUE
+            A10F.面付_紙巾 = (!面付_紙巾).VALUE
+            A10F.面付_CYL = (!面付_CYL).VALUE
+            A10F.面付_行 = (!面付_行).VALUE
+            A10F.面付_列 = (!面付_列).VALUE
+            A10F.面付_有効巾 = (!面付_有効巾).VALUE
+            A10F.面付_余り = (!面付_余り).VALUE
+            A10F.仕上形態K = (!仕上形態K).VALUE
+            A10F.ノッチF = (!ノッチF).VALUE
+            A10F.フック穴F = (!フック穴F).VALUE
+            A10F.船底シールF = (!船底シールF).VALUE
+            A10F.ラベルシールF = (!ラベルシールF).VALUE
+            A10F.アールシールF = (!アールシールF).VALUE
+            A10F.プラマーク入れF = (!プラマーク入れF).VALUE
+            A10F.空気穴F = (!空気穴F).VALUE
+            A10F.コーナーカットF = (!コーナーカットF).VALUE
+            A10F.コーナーカット箇所 = (!コーナーカット箇所).VALUE
+            A10F.チャック口開けF = (!チャック口開けF).VALUE
+            A10F.見積明細書発行F = (!見積明細書発行F).VALUE
+            A10F.見積明細書発行日 = (!見積明細書発行日).VALUE
+            A10F.削除F = (!削除F).VALUE
+            A10F.新規登録日 = (!新規登録日).VALUE
+            A10F.最終変更日 = (!最終変更日).VALUE
+            A10F.納入形態単位 = (!納入形態単位).VALUE
+            A10F.納入形態入数 = (!納入形態入数).VALUE
+            A10F.納入形態入数単位 = (!納入形態入数単位).VALUE
+            A10F.CREATED_BY = (!CREATED_BY).Value
+            A10F.CREATION_DATE = (!CREATION_DATE).Value
+            A10F.LAST_UPDATED_BY = (!LAST_UPDATED_BY).Value
+            A10F.LAST_UPDATE_DATE = (!LAST_UPDATE_DATE).Value
+            A10F.LAST_UPDATE_PROGRAMID = (!LAST_UPDATE_PROGRAMID).Value
+        End With
+    End Sub
+    Sub UPD_A10F(ByRef Sql_Code As Integer, Optional ByRef Str_WHERE As String = "")
+        '************************************************ ＵＰＤＡＴＥ
+        On Error GoTo UPD_A10F_10
+        '------------------------------------------------
+        Sql_Code = 0
+        Call NSP_A10F()
+        '------------------------------------------------ SQL文発行
+        With A10F '
+            Str_Sql = "UPDATE CYG_A10F SET"
+            Str_Sql = Str_Sql & " 見積NO = '" & .見積NO & "'"
+            Str_Sql = Str_Sql & ",XA1 = '" & .XA1 & "'"
+            Str_Sql = Str_Sql & ",見積K = '" & .見積K & "'"
+            Str_Sql = Str_Sql & ",見積日 = '" & .見積日 & "'"
+            Str_Sql = Str_Sql & ",納期 = '" & .納期 & "'"
+            Str_Sql = Str_Sql & ",見積有効期限 = '" & .見積有効期限 & "'"
+            Str_Sql = Str_Sql & ",得意先C = '" & .得意先C & "'"
+            Str_Sql = Str_Sql & ",得意先名 = '" & .得意先名 & "'"
+            Str_Sql = Str_Sql & ",部署C = '" & .部署C & "'"
+            Str_Sql = Str_Sql & ",営業担当者C = '" & .営業担当者C & "'"
+            Str_Sql = Str_Sql & ",品名 = '" & .品名 & "'"
+            Str_Sql = Str_Sql & ",見積数量 = '" & .見積数量 & "'"
+            Str_Sql = Str_Sql & ",見積数量単位 = '" & .見積数量単位 & "'"
+            Str_Sql = Str_Sql & ",納入形態数 = '" & .納入形態数 & "'"
+            Str_Sql = Str_Sql & ",納入形態数単位 = '" & .納入形態数単位 & "'"
+            Str_Sql = Str_Sql & ",仕上数量 = '" & .仕上数量 & "'"
+            Str_Sql = Str_Sql & ",印刷数量 = '" & .印刷数量 & "'"
+            Str_Sql = Str_Sql & ",備考 = '" & .備考 & "'"
+            Str_Sql = Str_Sql & ",仕上寸法_巾 = '" & .仕上寸法_巾 & "'"
+            Str_Sql = Str_Sql & ",仕上寸法_マチ = '" & .仕上寸法_マチ & "'"
+            Str_Sql = Str_Sql & ",仕上寸法_長さ = '" & .仕上寸法_長さ & "'"
+            Str_Sql = Str_Sql & ",展開寸法_横 = '" & .展開寸法_横 & "'"
+            Str_Sql = Str_Sql & ",展開寸法_縦 = '" & .展開寸法_縦 & "'"
+            Str_Sql = Str_Sql & ",面付_紙巾 = '" & .面付_紙巾 & "'"
+            Str_Sql = Str_Sql & ",面付_CYL = '" & .面付_CYL & "'"
+            Str_Sql = Str_Sql & ",面付_行 = '" & .面付_行 & "'"
+            Str_Sql = Str_Sql & ",面付_列 = '" & .面付_列 & "'"
+            Str_Sql = Str_Sql & ",面付_有効巾 = '" & .面付_有効巾 & "'"
+            Str_Sql = Str_Sql & ",面付_余り = '" & .面付_余り & "'"
+            Str_Sql = Str_Sql & ",仕上形態K = '" & .仕上形態K & "'"
+            Str_Sql = Str_Sql & ",ノッチF = '" & .ノッチF & "'"
+            Str_Sql = Str_Sql & ",フック穴F = '" & .フック穴F & "'"
+            Str_Sql = Str_Sql & ",船底シールF = '" & .船底シールF & "'"
+            Str_Sql = Str_Sql & ",ラベルシールF = '" & .ラベルシールF & "'"
+            Str_Sql = Str_Sql & ",アールシールF = '" & .アールシールF & "'"
+            Str_Sql = Str_Sql & ",プラマーク入れF = '" & .プラマーク入れF & "'"
+            Str_Sql = Str_Sql & ",空気穴F = '" & .空気穴F & "'"
+            Str_Sql = Str_Sql & ",コーナーカットF = '" & .コーナーカットF & "'"
+            Str_Sql = Str_Sql & ",コーナーカット箇所 = '" & .コーナーカット箇所 & "'"
+            Str_Sql = Str_Sql & ",チャック口開けF = '" & .チャック口開けF & "'"
+            Str_Sql = Str_Sql & ",見積明細書発行F = '" & .見積明細書発行F & "'"
+            Str_Sql = Str_Sql & ",見積明細書発行日 = '" & .見積明細書発行日 & "'"
+            Str_Sql = Str_Sql & ",削除F = '" & .削除F & "'"
+            Str_Sql = Str_Sql & ",新規登録日 = '" & .新規登録日 & "'"
+            Str_Sql = Str_Sql & ",最終変更日 = '" & .最終変更日 & "'"
+            Str_Sql = Str_Sql & ",納入形態単位 = '" & .納入形態単位 & "'"
+            Str_Sql = Str_Sql & ",納入形態入数 = '" & .納入形態入数 & "'"
+            Str_Sql = Str_Sql & ",納入形態入数単位 = '" & .納入形態入数単位 & "'"
+            Str_Sql = Str_Sql & ",CREATED_BY = '" & .CREATED_BY & "'"
+            Str_Sql = Str_Sql & ",CREATION_DATE = TO_DATE('" & .CREATION_DATE.ToString & "','" & Wg_DateFmt & "')"
+            Str_Sql = Str_Sql & ",LAST_UPDATED_BY = '" & .LAST_UPDATED_BY & "'"
+            Str_Sql = Str_Sql & ",LAST_UPDATE_DATE = TO_DATE('" & .LAST_UPDATE_DATE.ToString & "','" & Wg_DateFmt & "')"
+            Str_Sql = Str_Sql & ",LAST_UPDATE_PROGRAMID = '" & .LAST_UPDATE_PROGRAMID & "'"
+            Str_Sql = Str_Sql & " WHERE " & Str_WHERE
+        End With
+        '------------------------------------------------
+        OraDatabase.DbExecuteSQL(Str_Sql)
+        '------------------------------------------------
+        Exit Sub
+UPD_A10F_10:
+        '================================================ オラクルエラー処理                     '
+        Call oo_OrErr(Sql_Code)
+    End Sub
+    '
+    Sub NSP_A10F()
+        With A10F
+            .XA1 = exNsp(.XA1)
+            .見積K = exNsp(.見積K)
+            .見積日 = exNsp(.見積日)
+            .納期 = exNsp(.納期)
+            .見積有効期限 = exNsp(.見積有効期限)
+            .得意先C = exNsp(.得意先C)
+            .得意先名 = exNsp(.得意先名)
+            .部署C = exNsp(.部署C)
+            .営業担当者C = exNsp(.営業担当者C)
+            .品名 = exNsp(.品名)
+            .見積数量単位 = exNsp(.見積数量単位)
+            .納入形態数単位 = exNsp(.納入形態数単位)
+            .備考 = exNsp(.備考)
+            .仕上形態K = exNsp(.仕上形態K)
+            .ノッチF = exNsp(.ノッチF)
+            .フック穴F = exNsp(.フック穴F)
+            .船底シールF = exNsp(.船底シールF)
+            .ラベルシールF = exNsp(.ラベルシールF)
+            .アールシールF = exNsp(.アールシールF)
+            .プラマーク入れF = exNsp(.プラマーク入れF)
+            .空気穴F = exNsp(.空気穴F)
+            .コーナーカットF = exNsp(.コーナーカットF)
+            .チャック口開けF = exNsp(.チャック口開けF)
+            .見積明細書発行F = exNsp(.見積明細書発行F)
+            .見積明細書発行日 = exNsp(.見積明細書発行日)
+            .削除F = exNsp(.削除F)
+            .新規登録日 = exNsp(.新規登録日)
+            .最終変更日 = exNsp(.最終変更日)
+            .納入形態単位 = exNsp(.納入形態単位)
+            .納入形態入数単位 = exNsp(.納入形態入数単位)
+            .CREATED_BY = exNsp(.CREATED_BY)
+            If IsDate(.CREATION_DATE) = False Then
+                .CREATION_DATE = Now
+            End If
+            .LAST_UPDATED_BY = exNsp(.LAST_UPDATED_BY)
+            If IsDate(.LAST_UPDATE_DATE) = False Then
+                .LAST_UPDATE_DATE = Now
+            End If
+            .LAST_UPDATE_PROGRAMID = exNsp(.LAST_UPDATE_PROGRAMID)
+        End With
+    End Sub
+    '
+End Module
