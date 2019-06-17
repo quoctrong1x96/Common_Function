@@ -1,0 +1,423 @@
+
+    Function SET_DATE_DAYS(ByRef W_KIJUN As String, ByRef W_DAYS As Short) As String
+        '**************************************** 日付計算（日単位）
+        'W_KIJUN : 基準日(YYYY/MM/DD)
+        'W_DAYS  : 日数(+ : 日数後, -: 日数前)
+        '----------------------------------------
+        Dim I As Short
+        '---------------------------------------- 計算用項目定義
+        Dim W_DATE_L As Integer ' 基準日数値ﾀｲﾌﾟ
+        Dim W_DATE_S As String = "" ' 基準日文字ﾀｲﾌﾟ                         '@@8001 EX.NAGAO UPD
+        Dim W_DAYS_P As Short ' 日数絶対値
+        Dim W_LAST As String ' 月末日                                   '@@8001 EX.NAGAO UPD
+        '---------------------------------------- 計算準備
+        SET_DATE_DAYS = ""
+        W_DATE_L = CInt(Mid(W_KIJUN, 1, 4) & Mid(W_KIJUN, 6, 2) & Mid(W_KIJUN, 9, 2))   '@@8001 FUKUZAKI DEL
+        W_DAYS_P = System.Math.Abs(W_DAYS)
+
+        '========================================
+        For I = 1 To W_DAYS_P
+            '------------------------------------ +1 or -1
+            If W_DAYS > 0 Then
+                W_DATE_L = W_DATE_L + 1
+            Else
+                W_DATE_L = W_DATE_L - 1
+            End If
+            '------------------------------------ 月末日取得
+            W_LAST = SET_DATE_LAST(W_DATE_L)                            '@@8001 EX.NAGAO UPD
+            W_DATE_S = CStr(W_DATE_L)                                   '@@8001 EX.NAGAO UPD
+            '------------------------------------ プラス日数の時
+            If W_DAYS > 0 Then
+                '-------------------------------- 末日を超えたら翌月1日
+                If (Mid(exAsp(W_DATE_S, 8), 7, 2) > RTrim(W_LAST)) Then '@@8001 EX.NAGAO UPD
+                    W_DATE_L = W_DATE_L + 100
+                    W_DATE_S = CStr(W_DATE_L)                           '@@8001 EX.NAGAO UPD
+                    Mid(W_DATE_S, 7, 2) = "01"                '@@8001 EX.NAGAO UPD
+                    W_DATE_L = CInt(exAsp(W_DATE_S, 8))                 '@@8001 EX.NAGAO UPD
+                    '---------------------------- 末月を超えたら翌年1月
+                    If (Mid(exAsp(W_DATE_S, 8), 5, 2) > "12") Then      '@@8001 EX.NAGAO UPD
+                        W_DATE_L = W_DATE_L + 10000
+                        W_DATE_S = CStr(W_DATE_L)                       '@@8001 EX.NAGAO UPD
+                        Mid(W_DATE_S, 5, 2) = "01"            '@@8001 EX.NAGAO UPD
+                        W_DATE_L = CInt(W_DATE_S)                       '@@8001 EX.NAGAO UPD
+                    End If
+                End If
+                '------------------------------------ マイナス日数の時
+            Else
+                '-------------------------------- 1日を下回ったら前月末日
+                If (Mid(exAsp(W_DATE_S, 8), 7, 2) < "01") Then          '@@8001 EX.NAGAO UPD
+                    W_DATE_L = W_DATE_L - 100
+                    W_DATE_S = CStr(W_DATE_L)                           '@@8001 EX.NAGAO UPD
+                    W_LAST = SET_DATE_LAST(W_DATE_L)                    '@@8001 EX.NAGAO UPD
+                    Mid(W_DATE_S, 7, 2) = exAsp(W_LAST, 2)    '@@8001 EX.NAGAO UPD
+                    W_DATE_L = CInt(W_DATE_S)                           '@@8001 EX.NAGAO UPD
+                    '---------------------------- 1月を下回ったら前年末月
+                    If (Mid(exAsp(W_DATE_S, 8), 5, 2) < "01") Then      '@@8001 EX.NAGAO UPD
+                        W_DATE_L = W_DATE_L - 10000
+                        W_DATE_S = CStr(W_DATE_L)                       '@@8001 EX.NAGAO UPD
+                        Mid(W_DATE_S, 5, 2) = "12"            '@@8001 EX.NAGAO UPD
+                        W_DATE_L = CInt(W_DATE_S)                       '@@8001 EX.NAGAO UPD
+                    End If
+                End If
+            End If
+        Next I
+        '========================================
+        SET_DATE_DAYS = Mid(exAsp(W_DATE_S, 8), 1, 4) & "/" & Mid(exAsp(W_DATE_S, 8), 5, 2) & "/" & Mid(exAsp(W_DATE_S, 8), 7, 2)   '@@8001 EX.NAGAO UPD
+    End Function
+    Sub SET_HASUU()
+        '======================================== 端数処理
+        If RTrim(G.HASUU) < "24010" Then '@19981129                                         '@@8001 EX.NAGAO UPD
+            ' 端数区分（既定値）
+            'G.HASUU = M10M_Dynaset!X24.Value & M10M_Dynaset!端数K.Value                     '@@8001 EX.NAGAO UPD   '20160606 FJN VAN-KV DEL
+            G.HASUU = M10M_Dt.Rows(0).Item("X24") & M10M_Dt.Rows(0).Item("端数K")                                   '20160606 FJN VAN-KV ADD
+        End If
+        If G.KINGA < 0 Then
+            G.KINGA = System.Math.Abs(G.KINGA)
+            G.CUR01 = -1
+        Else
+            G.CUR01 = 1
+        End If
+        Select Case RTrim(G.HASUU)                                                          '@@8001 EX.NAGAO UPD
+            '------------------------------------ 小数第１位　切り捨て（１円）
+            Case "24010"
+                G.KINGA = G.KINGA + 0
+            '------------------------------------ 　　　〃　　四捨五入
+            Case "24011"
+                G.KINGA = G.KINGA + 0.5
+            '------------------------------------ 　　　〃　　切り上げ
+            Case "24012"
+                G.KINGA = G.KINGA + 0.9
+            '------------------------------------ 小数第２位　切り捨て（０．１円）
+            Case "24020"
+                G.KINGA = G.KINGA + 0
+            '------------------------------------ 　　　〃　　四捨五入
+            Case "24021"
+                G.KINGA = G.KINGA + 0.55
+            '------------------------------------ 　　　〃　　切り上げ
+            Case "24022"
+                G.KINGA = G.KINGA + 0.99
+            '------------------------------------ 小数第３位　切り捨て（０．０１円）
+            Case "24030"
+                G.KINGA = G.KINGA + 0
+            '------------------------------------ 　　　〃　　四捨五入
+            Case "24031"
+                G.KINGA = G.KINGA + 0.555
+            '------------------------------------ 　　　〃　　切り上げ
+            Case "24032"
+                G.KINGA = G.KINGA + 0.999
+            '------------------------------------ 小数第４位　切り捨て（０．００１円）
+            Case "24040"
+                G.KINGA = G.KINGA + 0
+            '------------------------------------ 　　　〃　　四捨五入
+            Case "24041"
+                G.KINGA = G.KINGA + 0.5555
+            '------------------------------------ 　　　〃　　切り上げ
+            Case "24042"
+                G.KINGA = G.KINGA + 0.9999
+            '==================================== 整数第１位　切り捨て（１０円）
+            Case "24110"
+                G.KINGA = G.KINGA + 0
+                G.KINGA = G.KINGA / 10
+                G.KINGA = Fix(G.KINGA)
+                G.KINGA = G.KINGA * 10
+            '------------------------------------ 　　　〃　　四捨五入
+            Case "24111"
+                G.KINGA = G.KINGA + 5
+                G.KINGA = G.KINGA / 10
+                G.KINGA = Fix(G.KINGA)
+                G.KINGA = G.KINGA * 10
+            '------------------------------------ 　　　〃　　切り上げ
+            Case "24112"
+                G.KINGA = G.KINGA + 9
+                G.KINGA = G.KINGA / 10
+                G.KINGA = Fix(G.KINGA)
+                G.KINGA = G.KINGA * 10
+            '------------------------------------ 整数第２位　切り捨て（１００円）
+            Case "24120"
+                G.KINGA = G.KINGA + 0
+                G.KINGA = G.KINGA / 100
+                G.KINGA = Fix(G.KINGA)
+                G.KINGA = G.KINGA * 100
+            '------------------------------------ 　　　〃　　四捨五入
+            Case "24121"
+                G.KINGA = G.KINGA + 55
+                G.KINGA = G.KINGA / 100
+                G.KINGA = Fix(G.KINGA)
+                G.KINGA = G.KINGA * 100
+            '------------------------------------ 　　　〃　　切り上げ
+            Case "24122"
+                G.KINGA = G.KINGA + 99
+                G.KINGA = G.KINGA / 100
+                G.KINGA = Fix(G.KINGA)
+                G.KINGA = G.KINGA * 100
+            '------------------------------------ 整数第３位　切り捨て（１０００円）
+            Case "24130"
+                G.KINGA = G.KINGA + 0
+                G.KINGA = G.KINGA / 1000
+                G.KINGA = Fix(G.KINGA)
+                G.KINGA = G.KINGA * 1000
+            '------------------------------------ 　　　〃　　四捨五入
+            Case "24131"
+                G.KINGA = G.KINGA + 555
+                G.KINGA = G.KINGA / 1000
+                G.KINGA = Fix(G.KINGA)
+                G.KINGA = G.KINGA * 1000
+            '------------------------------------ 　　　〃　　切り上げ
+            Case "24132"
+                G.KINGA = G.KINGA + 999
+                G.KINGA = G.KINGA / 1000
+                G.KINGA = Fix(G.KINGA)
+                G.KINGA = G.KINGA * 1000
+                '------------------------------------ 小数第２位　四捨五入（既定値）
+            Case Else
+                G.KINGA = G.KINGA + 0.55
+        End Select
+        '======================================= 整数部のみ取得
+        G.KINGA = Fix(G.KINGA) * G.CUR01
+        Exit Sub
+    End Sub
+    Sub SET_KINGA()
+        '**************************************** 金額計算（掛算）
+        ' G.SURYO ･･･ 数　量   (Currency)
+        ' G.TANKA ･･･ 単　価   (   〃   )
+        ' G.KINGA ･･･ 金　額   (   〃   )
+        ' G.HASUU ･･･ 端数区分 (名称Ｍ24)
+        '--------------------------------------- 計　算
+        On Error GoTo SET_KINGA_ERR
+        G.KINGA = G.SURYO * G.TANKA
+        If System.Math.Abs(G.KINGA) > 99999999999@ Then
+            GoTo SET_KINGA_ERR
+        End If
+        '--------------------------------------- 端数処理
+        Call SET_HASUU()
+        Exit Sub
+SET_KINGA_ERR:
+        G.KINGA = 0
+    End Sub
+    Sub SET_KINGA2()
+        '**************************************** 金額計算（割算）
+        ' G.SURYO ･･･ 数　量   (Currency)
+        ' G.TANKA ･･･ 単　価   (   〃   )
+        ' G.KINGA ･･･ 金　額   (   〃   )
+        ' G.HASUU ･･･ 端数区分 (名称Ｍ24)
+        '--------------------------------------- 計　算
+        If G.TANKA = 0 Then
+            G.KINGA = 0
+        Else
+            G.KINGA = G.SURYO / G.TANKA
+        End If
+        '--------------------------------------- 端数処理
+        Call SET_HASUU()
+    End Sub
+    Sub SET_ZEIGA()
+        '*************************************** 税額計算
+        ' G.ZEIKU ･･･ 税額区分  (名称Ｍ19)
+        ' G.ZEIHI ･･･ 日　付    (Long    )
+        ' G.ZEIGW ･･･ 受渡金額  (Currency)
+        '---------------------------------
+        ' G.ZEIRI ･･･ 税　率    (   〃   )
+        ' G.ZEIGA ･･･ 税　額    (   〃   )
+        ' G.ZEIGB ･･･ 本　体    (   〃   )
+        ' G.ZEIGC ･･･ 本体+税額 (   〃   )
+        '--------------------------------------- 初期化
+        G.ZEIRI = 0
+        G.ZEIGA = 0
+        G.ZEIGB = 0
+        G.ZEIGC = 0
+        '--------------------------------------- 税率取得
+        Dim I As Short
+        For I = 4 To 1 Step -1
+            'If M10M_Dynaset.Fields("税率変更日" & I).Value <> Space(10) Then
+            If M10M_Dt.Rows(0).Item("税率変更日" & I) <> Space(10) Then  '20160516 MODIFIED BY ECT LIUSW
+                'If M10M_Dynaset.Fields("税率変更日" & I).Value <= RTrim(G.ZEIHI) Then           '@@8001 EX.NAGAO UPD
+                If M10M_Dt.Rows(0).Item("税率変更日" & I) <= RTrim(G.ZEIHI) Then  '20160516 MODIFIED BY ECT LIUSW
+                    'G.ZEIRI = M10M_Dynaset.Fields("税率" & I).Value
+                    G.ZEIRI = M10M_Dt.Rows(0).Item("税率" & I)  '20160516 MODIFIED BY ECT LIUSW
+                    Exit For
+                End If
+            End If
+        Next I
+        '======================================= 税額計算
+        If RTrim(G.ZEIKU) < "191" Then                                      '@@8001 EX.NAGAO UPD
+            'G.ZEIKU = M10M_Dynaset!X19.Value & M10M_Dynaset!税額K.Value     '@@8001 EX.NAGAO UPD
+            G.ZEIKU = M10M_Dt.Rows(0).Item("X19") & M10M_Dt.Rows(0).Item("税額K")  '20160516 MODIFIED BY ECT LIUSW
+        End If
+        Select Case RTrim(G.ZEIKU)                                          '@@8001 EX.NAGAO UPD
+            Case "191"
+                G.ZEIGA = G.ZEIGW * G.ZEIRI / 100
+            Case "192"
+                G.ZEIGA = G.ZEIGW * G.ZEIRI / (100 + G.ZEIRI)
+            Case "193"
+                G.ZEIGA = 0
+            Case "194"              '@@1607 KAJI
+                G.ZEIGA = 0         '@@1607 KAJI
+            Case "19"               '@@1607 KAJI
+                G.ZEIGA = 0         '@@1607 KAJI
+        End Select
+        '--------------------------------------- 税額端数計算
+        G.SURYO = 1
+        G.TANKA = G.ZEIGA
+        Call SET_KINGA()
+        G.ZEIGA = G.KINGA
+        '======================================= 本体分離
+        Select Case RTrim(G.ZEIKU)                                          '@@8001 EX.NAGAO UPD
+            '----------------------------------- 外　税
+            Case "191"
+                G.ZEIGB = G.ZEIGW
+            '------------------------------- 内　税
+            Case "192"
+                G.ZEIGB = G.ZEIGW - G.ZEIGA
+            '------------------------------- 無　税
+            Case "193"
+                G.ZEIGB = G.ZEIGW
+            Case "194"              '@@1607 KAJI
+                G.ZEIGB = G.ZEIGW   '@@1607 KAJI
+            '------------------------------- 非課税　20120809 ADDED BY XIAOHY
+            Case "195"
+                G.ZEIGB = G.ZEIGW
+            Case "19"               '@@1607 KAJI
+                G.ZEIGB = G.ZEIGW   '@@1607 KAJI
+        End Select
+        '======================================= 税込金額（本体＋税額）
+        On Error GoTo SET_ZEIGA_Err '@@0591
+        '------------------------------------------------               '@@0591
+        G.ZEIGC = G.ZEIGA + G.ZEIGB
+        '------------------------------------------------ 桁ﾁｪｯｸ        '@@0591
+        If System.Math.Abs(G.ZEIGC) > 99999999999@ Then GoTo SET_ZEIGA_Err '@@0591
+        Exit Sub '@@0591
+        '================================================ ｴﾗｰ処理       '@@0591
+SET_ZEIGA_Err:  '@@0591
+        G.ZEIGC = 0 '@@0591
+    End Sub
+    '--------------------------------------------------------------- @@0379 TAKAHASHI ↓
+    Sub SET_TANKA(ByRef W_KEIKU As String, ByRef W_SUNP1 As Decimal, ByRef W_SUNP2 As Decimal, ByRef W_SUNP3 As Decimal, ByRef W_YOSEK As Decimal, ByRef W_HIJUU As Decimal, ByRef W_TANJU As Decimal, ByRef W_JUTAN As Decimal, ByRef W_KEITAN As Decimal)
+        '   W_KEIKU As String               ' 計算区分
+        '   W_SUNP1 As Currency             ' 寸法１
+        '   W_SUNP2 As Currency             ' 寸法２
+        '   W_SUNP3 As Currency             ' 寸法３
+        '   W_YOSEK As Currency             ' 容積 (OUT)
+        '   W_HIJUU As Currency             ' 比重
+        '   W_TANJU As Currency             ' 単位重量 (OUT)
+        '   W_JUTAN As Currency             ' 重量単価
+        '   W_TANKA As Currency             ' 計算単価 (OUT)
+        '------------------------------------------------
+        Dim Ww_ErrPos As Short '@@0578
+        '------------------------------------------------
+        On Error GoTo SET_TANKA_Err '@@0578
+        '------------------------------------------------「容積」
+        Ww_ErrPos = 1 '@@0578
+        Select Case W_KEIKU
+            Case "11"
+                W_YOSEK = W_SUNP1 * W_SUNP2 * W_SUNP3 / 1000
+            Case "12"
+                W_YOSEK = W_SUNP1 * W_SUNP2 * 3.14 * W_SUNP2 / 1000
+            Case "13"
+                W_YOSEK = (W_SUNP1 * W_SUNP1 * 3.14 * W_SUNP3 / 1000) - (W_SUNP2 * W_SUNP2 * 3.14 * W_SUNP3 / 1000)
+        End Select
+        '------------------------------------------------「単位重量」
+        Ww_ErrPos = 2 '@@0578
+        W_TANJU = W_YOSEK * W_HIJUU / 100000
+        '------------------------------------------------「計算単価」
+        Ww_ErrPos = 3 '@@0578
+        W_KEITAN = W_TANJU * W_JUTAN / 1000
+        '--------------------------------------------------------------- @@0379 TAKAHASHI ↑
+        Exit Sub '@@0578
+        '@@0578↓
+        '================================================ ｵｰﾊﾞｰﾌﾛｰ処理
+SET_TANKA_Err:
+        Select Case Ww_ErrPos
+            Case 1 : W_YOSEK = 0
+            Case 2 : W_TANJU = 0
+            Case 3 : W_KEITAN = 0
+        End Select
+        Resume Next
+        '@@0578↑
+    End Sub
+    '------------------------------------------------------------------ @@7100 ENG GAKIYA ADD↓
+    Sub GET_ZEIK(Optional ByVal Q_取引先C As String = "", Optional ByVal Q_品目K As String = "", Optional ByVal Q_品目C As String = "",
+                 Optional ByVal Q_区分 As Integer = 0, Optional ByRef Q_税額K As String = "")
+        '************************************* 取引先単位で税額K取得  処理
+        Dim W_ERRCD As Integer
+        Dim W_ERRTX As String
+
+        '------------------------------------------------ パラメータ作成
+
+        Dim parass(6) As OracleClient.OracleParameter
+        parass(0) = OraDatabase.NewInputStrPara("P_TORIC", 15, Q_取引先C)
+        parass(1) = OraDatabase.NewInputStrPara("P_HINMK", 8, Q_品目K)
+        parass(2) = OraDatabase.NewInputStrPara("P_HINMC", 40, Q_品目C)
+        parass(3) = OraDatabase.NewInputNumPara("P_ZEIK", 10, Q_区分)
+        parass(4) = OraDatabase.NewOutputStrPara("P_ZEIGAK", 8, Q_税額K)
+        parass(5) = OraDatabase.NewOutputNumPara("P_ERRCD", 20, 0)
+        parass(6) = OraDatabase.NewOutputStrPara("P_ERRTX", 2000, " ")
+
+        OraDatabase.CallProcedure("GET_ZEIGAKU.GET_ZEIGAK", parass)
+        W_ERRCD = parass(5).Value
+        If W_ERRCD <> 0 Then
+            W_ERRTX = parass(6).Value
+            MsgBox("異常発生！！" & vbCrLf & "SQLCODE=" & W_ERRCD & vbCrLf & W_ERRTX, MsgBoxStyle.Exclamation)
+            FLG_Roll = "1"
+            Exit Sub
+        End If
+        Q_税額K = "19" & parass(4).Value
+        '20160516 MODIFIED BY ECT LIUSW END
+    End Sub
+    '------------------------------------------------------------------ @@7100 ENG GAKIYA ADD↑
+    '---------------------------------------------------------------------------------- '@@3256 KUSUMI ADD ↓↓↓
+    Public Function Chk_税率(ByVal P_日付1 As String, ByVal P_日付2 As String, Optional ByRef O_税率1 As Double = 0, Optional ByRef O_税率2 As Double = 0) As Boolean
+        '************************************************** 税率チェック
+        '   P_日付1とP_日付2の間で税率が変わったかチェックする。
+        '   各日付の税率が必要なときは、O_税率1、O_税率2へ返す。
+        '   戻り値  : True  ･･･ 税率が変わった。
+        '             False ･･･ 税率に変更はない。
+        '--------------------------------------------------
+        Dim Ww_Dynaset As Object
+        Dim Ww_Ret As Boolean
+        '--------------------------------------------------
+        Str_Sql = "SELECT NVL(税率変更日1,' ') AS 税率変更日1"
+        Str_Sql = Str_Sql & ",NVL(税率1,0) AS 税率1"
+        Str_Sql = Str_Sql & ",NVL(税率変更日2,' ') AS 税率変更日2"
+        Str_Sql = Str_Sql & ",NVL(税率2,0) AS 税率2"
+        Str_Sql = Str_Sql & ",NVL(税率変更日3,' ') AS 税率変更日3"
+        Str_Sql = Str_Sql & ",NVL(税率3,0) AS 税率3"
+        Str_Sql = Str_Sql & ",NVL(税率変更日4,' ') AS 税率変更日4"
+        Str_Sql = Str_Sql & ",NVL(税率4,0) AS 税率4"
+        Str_Sql = Str_Sql & " FROM DFW_M10M"
+        Str_Sql = Str_Sql & " WHERE KEY = '01'"
+        '-------------------------------------------------- レコードセット
+        Try
+            System.GC.Collect()
+            Ww_Dynaset = OraDatabase.DbcreateDynaset(Str_Sql, 2)
+            '----------------------------------------------
+            ' 日付1
+            For I As Integer = 4 To 1 Step -1
+                If RTrim(Ww_Dynaset.Fields("税率変更日" & I).Value) <> "" Then
+                    If Ww_Dynaset.Fields("税率変更日" & I).Value <= P_日付1 Then
+                        O_税率1 = Ww_Dynaset.Fields("税率" & I).Value
+                        Exit For
+                    End If
+                End If
+            Next
+            ' 日付2
+            For I As Integer = 4 To 1 Step -1
+                If RTrim(Ww_Dynaset.Fields("税率変更日" & I).Value) <> "" Then
+                    If Ww_Dynaset.Fields("税率変更日" & I).Value <= P_日付2 Then
+                        O_税率2 = Ww_Dynaset.Fields("税率" & I).Value
+                        Exit For
+                    End If
+                End If
+            Next
+            '----------------------------------------------
+            If O_税率1 <> O_税率2 Then
+                Ww_Ret = True
+            Else
+                Ww_Ret = False
+            End If
+        Catch ex As Exception
+            Ww_Ret = False
+        End Try
+        '--------------------------------------------------
+        Return Ww_Ret
+    End Function
+    '---------------------------------------------------------------------------------- '@@3256 KUSUMI ADD ↑↑↑
+End Module
