@@ -1,0 +1,351 @@
+Option Strict Off
+Option Explicit On
+Imports System
+Imports System.Data
+Imports System.Text
+Imports System.Windows.Forms
+Imports System.Runtime.InteropServices
+Imports System.Data.OracleClient
+
+Public Module C00_003XB
+    '*******************************************************************************
+    '************************************************
+    '   ORACLE Data Provider for .NET (ODP.NET)用宣言
+    '************************************************
+    Public ODPConnection As Object ' コネクション
+    '************************************************
+    '   オラクル用宣言（オブジェクト）
+    '************************************************
+    Public OraSession As Object ' セッション
+    Public OraDatabase As Object ' サービス接続
+    '************************************************
+    '   INI取得用
+    '************************************************
+    Declare Auto Function GetPrivateProfileString Lib "kernel32" _
+        Alias "GetPrivateProfileString" (
+        <MarshalAs(UnmanagedType.LPTStr)> ByVal lpApplicationName As String,
+        <MarshalAs(UnmanagedType.LPTStr)> ByVal lpKeyName As String,
+        <MarshalAs(UnmanagedType.LPTStr)> ByVal lpDefault As String,
+        <MarshalAs(UnmanagedType.LPTStr)> ByVal lpReturnedString As StringBuilder,
+        ByVal nSize As UInt32,
+        <MarshalAs(UnmanagedType.LPTStr)> ByVal lpFileName As String) As UInt32
+    '************************************************
+    '   指定された仮想キーの状態を取得
+    '************************************************
+    Declare Function GetKeyState Lib "user32" (ByVal nVirtKey As Integer) As Short
+    'Public Const VK_SHIFT = &H10                   '@@8001 EX KAJI DEL
+    Public Const VK_SHIFT As Integer = &H10         '@@8001 EX KAJI ADD
+    '************************************************
+    '   ログイン画面
+    '************************************************
+    Public IniDrive As String ' INIファイルパス
+    Public IniFile As String ' INIファイル名
+    ''''
+    Public C20C_Dynaset As Object ' ログインジャーナル領域  
+    'Public C20C_Dt As Object '20160516 ADDED BY ECT LIUSW     '20160606 FJN AN-TB DEL
+    Public C20C_Dt As DataTable ' ログインジャーナル領域       '20160606 FJN AN-TB ADD
+    Public Work_User As String ' ユーザー（WORK）
+    ''''
+    Public Save_User As String ' ユーザー
+    Public Save_Serv As String ' サービス
+    Public Save_Pass As String ' パスワード
+    ''''
+    'Public Save_Odbc As String ' ＯＤＢＣ名                        '@@7001 S.SUZUKI
+    Public Save_Crpt As String ' ＲＰＴパス
+    Public Save_Exe As String ' ＥＸＥパス
+    Public Save_Sql As String ' ＳＱＬパス
+    Public Save_Dll As String ' ＤＬＬパス    '@@0039 HIRASAWA
+    'Public Save_MENU As String ' メニュー種別              '@@7100 ENG ARAKAKI DEL
+    Public Save_Ope As String     ' オペレータ              '@@7100 ENG ARAKAKI INS↓
+    Public Save_Pass_1 As String  ' パスワード
+    Public Save_Date As String    ' 日付既定値
+    Public Save_Ope_Pre As String ' オペレータ既定値F       '@@7100 ENG ARAKAKI INS↑
+    Public Manzou_Send_Path As String ' 連携Sendファイル       '20150311 ADDED BY ZHUSAI
+    Public Manzou_Receiver_Path As String ' 連携Recieverファイル       '20150311 ADDED BY ZHUSAI
+    Public Manz_User As String     '20160109  FJN VAN-KV ADD
+    Public Manz_Pass As String     '20160109  FJN VAN-KV ADD
+    '************************************************
+    '   コンピュータ名
+    '************************************************
+    Public Work_Computer As String
+    Public Computer_Name As String
+    '************************************************
+    '   ライセンス取得サブ 引数（C00_000XA）
+    '************************************************
+    Public C00_000XA As Object
+    Public Company As String ' 会社名
+    Public Licence As String ' ライセンス数
+    '************************************************
+    '   ＳＱＬ文用宣言
+    '************************************************
+    Public Str_Sql As String ' SQL文
+    Public SW_Err As String ' SQL文実行エラー
+    '************************************************
+    '   単独起動チェック
+    '************************************************
+    Public Work_Program As String
+    Public Call_Program As String
+    '************************************************
+    '   処理区分入力パラメータ
+    '************************************************
+    Public パス区分 As String ' PAKG 1:製造,2:経理 3:基準               '@@8001 EX.NAGAO UPD
+    Public タイトル As String ' TTLG タイトル
+    Public スプレッド As String ' SPRG 1:ｽﾌﾟﾚｯﾄﾞ表示
+    Public 処理区分 As String ' SYOG 処理区分                           '@@8001 EX.NAGAO UPD
+    Public 処理名称 As String '      処理名称
+    Public オペレータ As String ' OPRG オペレータ                       '@@8001 EX.NAGAO UPD
+    Public パスワード As String ' PASG パスワード                       '@@8001 EX.NAGAO UPD
+    Public 日付既定値 As String ' DAYG 日付既定値
+    Public フォーム As String ' FRMG フォーム
+    Public 名前 As String ' NAME 名前
+    '************************************************
+    '   エラーハンドリング                                      '@@7001 KAJI↓
+    '************************************************
+    Public Err_LOGPATH As String
+    Public Err_MSG1 As String                       ' ＭＳＧ１
+    Public Err_MSG2 As String                       ' ＭＳＧ１
+    Public Err_MSG3 As String                       ' ＭＳＧ１  '@@7001 KAJI↑
+    '************************************************
+    '   ジャーナル共通領域
+    '************************************************
+    Public DUAL_Dynaset As Object ' シーケンスセット 
+    'Public DUAL_Dt As Object '20160516 ADDED BY ECT LIUSW  '20160606 FJN AN-TB DEL  
+    Public DUAL_Dt As DataTable ' シーケンスセット         '20160606 FJN AN-TB ADD
+    Public Const JNL_Count As Short = 19
+    Structure W_JNL
+        Dim SEQ As Integer '   ＳＥＱ
+        Dim オペレータC As String '   オペレータコード                  '@@8001 EX.NAGAO UPD START
+        Dim WSID As String '   ﾜｰｸｽﾃｰｼｮﾝID
+        Dim モニターF As String '   モニターフラグ
+        Dim 処理K As String '   処理区分
+        Dim 新旧F As String '   新旧フラグ
+        Dim 更新F1 As String '   更新フラグ
+        Dim 更新F2 As String '   更新フラグ
+        Dim 更新F3 As String '   更新フラグ
+        Dim 更新F4 As String '   更新フラグ
+        Dim 更新F5 As String '   更新フラグ
+        Dim 更新F6 As String '   更新フラグ
+        Dim 更新F7 As String '   更新フラグ
+        Dim 更新F8 As String '   更新フラグ
+        Dim 更新F9 As String '   更新フラグ
+        Dim 更新F10 As String '   更新フラグ
+        Dim FILLER30 As String
+        Dim 更新日 As String '   更新日
+        Dim 更新時 As String '   更新時                                 '@@8001 EX.NAGAO UPD END
+        Dim 現在SEQ As Integer
+    End Structure
+    Public JNL As W_JNL
+    '************************************************
+    '   受渡ファイル領域
+    '************************************************
+    Public C40C_Dynaset As Object ' 受渡ファイル領域
+    Public C40C_Dt As DataTable ' 受渡ファイル領域  '20160516 ADDED BY ECT LIUSW
+    Structure W_C40C
+        Dim コンピュータ As String
+        Dim プログラム As String                 '@@8001 EX.NAGAO UPD START
+        Dim 作業F As String
+        Dim 製番 As String
+        Dim 構成ID As String
+        Dim 手配ID As String                     '@@8001 EX.NAGAO UPD END
+        Dim 工順 As Short
+        Dim X31 As String                        '@@8001 EX.NAGAO UPD START
+        Dim 品目K As String
+        Dim 品目C As String
+        Dim 図面番号 As String
+        Dim 場所C As String
+        Dim 業者C As String
+        Dim 得意先C As String
+        Dim 取引先C As String
+        Dim 担当C As String
+        Dim 部署 As String
+        Dim 工程 As String
+        Dim 機械 As String
+        Dim 手配K As String                      '@@8001 EX.NAGAO UPD END
+    End Structure
+    Public C40C As W_C40C
+    '************************************************
+    '   Exe起動用
+    '************************************************
+    Public ExeDrive As Object
+    Public Exe_File As String
+    'Declare Function WaitForSingleObject Lib "kernel32" (ByVal hHandle As Integer, ByVal dwMilliseconds As Integer) As Integer ' @@UPG.NET(DEL)
+    '************************************************
+    '   プロセス終了状態取得
+    '************************************************
+    ' 新しいプロセスとそのプライマリスレッドを生成。                                            '@990622 ↓
+    ' 新しいプロセスは指定された実行可能ファイルを実行。
+    '------------------------------------------------
+    Structure PROCESS_INFORMATION
+        Dim hProcess As Integer
+        Dim hThread As Integer
+        Dim dwProcessId As Integer
+        Dim dwThreadId As Integer
+    End Structure
+    Structure STARTUPINFO
+        Dim cb As Integer
+        Dim lpReserved As String
+        Dim lpDesktop As String
+        Dim lpTitle As String
+        Dim dwX As Integer
+        Dim dwY As Integer
+        Dim dwXSize As Integer
+        Dim dwYSize As Integer
+        Dim dwXCountChars As Integer
+        Dim dwYCountChars As Integer
+        Dim dwFillAttribute As Integer
+        Dim dwFlags As Integer
+        Dim wShowWindow As Short
+        Dim cbReserved2 As Short
+        Dim lpReserved2 As Integer
+        Dim hStdInput As Integer
+        Dim hStdOutput As Integer
+        Dim hStdError As Integer
+    End Structure
+    Public Const CREATE_DEFAULT_ERROR_MODE As Integer = &H4000000
+    Public Const HIGH_PRIORITY_CLASS As Integer = &H80
+    Public Const NORMAL_PRIORITY_CLASS As Integer = &H20
+    Public Const WAIT_TIMEOUT As Integer = &H102 '@990622 ↑
+    '************************************************
+    '   PLSQL用ﾊﾟﾗﾒｰﾀ
+    '************************************************
+    '------------------------------------------------ Parameter Types
+    Public Const ORAPARM_INPUT As Short = 1
+    Public Const ORAPARM_OUTPUT As Short = 2
+    Public Const ORAPARM_BOTH As Short = 3
+    '------------------------------------------------ Parameter Types (ServerType)
+    Public Const ORATYPE_VARCHAR2 As Short = 1
+    Public Const ORATYPE_NUMBER As Short = 2
+    Public Const ORATYPE_SINT As Short = 3
+    Public Const ORATYPE_FLOAT As Short = 4
+    Public Const ORATYPE_STRING As Short = 5
+    Public Const ORATYPE_VARCHAR As Short = 9
+    Public Const ORATYPE_DATE As Short = 12
+    Public Const ORATYPE_UINT As Short = 68
+    'Public Const ORATYPE_CHAR = 96
+    'Public Const ORATYPE_CHARZ = 97
+    Public Const ORATYPE_CHAR As Short = 97
+    Public Const ORATYPE_CHARZ As Short = 98
+    '------------------------------------------------ SQL文作成用 データタイプ                  '@990723 N.Sakurai AddNew
+    Public Enum DATATYPE
+        CHAR_MEMBER = 0
+        NUM_MEMBER = 1
+    End Enum
+    '************************************************                                           '@0009XX FROM
+    '   ダイナセット生成モード
+    '************************************************
+    Public Enum DynasetFlags
+        '   OraDyn_Default = &H0&                   ' ﾃﾞﾌｫﾙﾄの動作を受け入れる。
+        OraDyn_No_AutoBind = &H1 ' ﾃﾞｰﾀﾍﾞｰｽ･ﾊﾟﾗﾒｰﾀの自動ﾊﾞｲﾝﾃﾞｨﾝｸﾞを実行しない。
+        OraDyn_No_BlankStrip = &H2 ' ﾃﾞｰﾀﾍﾞｰｽから取り出された文字列ﾃﾞｰﾀから後続するﾌﾞﾗﾝｸを取り除かない。
+        OraDyn_ReadOnly = &H4 ' ﾀﾞｲﾅｾｯﾄを読込み専用にする。
+        OraDyn_NoCache = &H8 ' ﾀﾞｲﾅｾｯﾄ用のﾛｰｶﾙ･ﾃﾞｰﾀ･ｷｬｯｼｭを作成しない。...
+        OraDyn_OraMode = &H10 ' ﾃﾞｰﾀﾍﾞｰｽのOracleﾓｰﾄﾞと同じように動作する。...
+        OraDyn_No_ReFetch = &H20 ' ﾃﾞｰﾀﾍﾞｰｽのORADB_NO_REFETCHﾓｰﾄﾞと同じように動作する。...
+        OraDyn_No_MoveFirst = &H40 ' ﾀﾞｲﾅｾｯﾄの作成時にMoveFirstを強制しない。...
+        OraDyn_Dirty_Write = &H80 ' UpdateおよびDeleteでは、読取り一貫性を調べない。
+        OraDyn_DFW_Default = &H6 ' 電脳工場標準 (OraDyn_No_BlankStrip + OraDyn_ReadOnly)
+    End Enum '@0009XX TO
+    '************************************************
+    '   着手日、完了日計算サブルーチン
+    '************************************************
+    Public C00_000XB_KEIG As String ' 計算日                        '@@8001 EX.NAGAO UPD
+    Public C00_000XB_KETG As Short ' 0:AM 1:PM
+    Public C00_000XB_LDTG As Single ' リードタイム
+    '************************************************
+    '   郵便番号検索
+    '************************************************
+    Public C00_000XB_PERG As String ' ﾁｪｯｸ ｽﾃｰﾀｽ (" "=OK,"1"=ｴﾗｰ)   '@@8001 EX.NAGAO UPD
+    Public C00_000XB_POSG As String ' 郵便番号ﾁｪｯｸ                  '@@8001 EX.NAGAO UPD
+    '************************************************
+    '   ＯＫルーチン用
+    '************************************************
+    Public FLG_Lock As String ' 入力項目ロックフラグ（" ":UNLOCK      "1":LOCK）
+    Public FLG_Roll As String ' トランザクション実行（" ":CommitTrans "1":ResetTrans）
+    Public FLG_動作K As String
+    Public FLG_SEQ1 As String
+    Public FLG_SEQ2 As String
+    Public FLG_製番 As String '@000921 UDA
+    '************************************************                       '@000421↓
+    '   単価取得サブルーチン用ワークエリア
+    '************************************************
+    Structure TY_TANKA
+        Dim HINMK As String                                         '@@8001 EX.NAGAO UPD
+        Dim HINMC As String                                         '@@8001 EX.NAGAO UPD
+        Dim TANI1 As String
+        Dim TANI2 As String
+        Dim SURY1 As Decimal
+        Dim SURY2 As Decimal
+        Dim HIZUK As String                                         '@@8001 EX.NAGAO UPD START
+        Dim TORI1 As String
+        Dim KOTEI As String
+        Dim SEBAN As String                 '@@7100 ENG ARAKAKI
+        Dim TORI2 As String                                         '@@8001 EX.NAGAO UPD END
+        Dim TANK1 As Decimal
+        Dim TANK2 As Decimal
+        Dim LTIME As Decimal
+        Dim LOTSU As Decimal
+        Dim SAITE As Decimal
+        Dim ERRCD As Integer
+        Dim ERRTX As String
+        Dim CRNCY As String             '@@8001 EX KAJI ADD 通貨C
+    End Structure
+    Public G_TNK As TY_TANKA '@000421↑
+    '************************************************                       '@0267 ↓ SHIMADU
+    '   プリンタ取得サブルーチン用ワークエリア
+    '************************************************
+    Dim CP0_000XA As Object
+    '--------------------------------------
+    Public Q_Ext As String ' 拡張子
+    Public A_PrnDevice_Name As String ' プリンタ名
+    Public A_PrnDriver_Name As String ' プリンタドライバ名
+    Public A_PrnPort As String ' プリンタポート
+    Public A_PrnSheet_Size As String ' 用紙サイズ
+    Public A_PrnSheet_Orie As String ' 用紙の向き
+    Public A_PrnEtc1 As String ' その他1
+    Public A_PrnEtc2 As String ' その他2                 @0267 ↑ SHIMADU
+    '@@0402 HIRASAWA ↓
+    '************************************************
+    '   Windows2000判定ルーチン用ワークエリア
+    '************************************************
+    Private Structure OSVERSIONINFO
+        Dim dwOSVersionInfoSize As Integer
+        Dim dwMajorVersion As Integer
+        Dim dwMinorVersion As Integer
+        Dim dwBuildNumber As Integer
+        Dim dwPlatformId As Integer
+        Dim szCSDVersion As String                                  '@@8001 EX.NAGAO UPD
+    End Structure
+    '--------------------------------------
+    Private Const VER_PLATFORM_WIN32s As Short = 0
+    Private Const VER_PLATFORM_WIN32_WINDOWS As Short = 1
+    Private Const VER_PLATFORM_WIN32_NT As Short = 2
+    '--------------------------------------
+    '@@0402 HIRASAWA ↑
+    '************************************************
+    '   その他
+    '************************************************
+    Public Const KANAG As String = "ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜｦﾝ" ' カナ検索用
+    Public Const W_COLOR As Integer = &HC0FFC0   ' 照会画面ツートンカラー（薄緑）
+    Public Msg As Short ' ＯＫ画面ステータス
+    Public NDATHG As String ' 日付ワーク（レポート出力等）          '@@8001 EX.NAGAO UPD
+    Public NDATEG As String ' 日付ワーク（レポート出力等）          '@@8001 EX.NAGAO UPD
+    Public Ix1 As Short ' 指標ワーク（For Ix1 = ･･･）
+    Public Ix2 As Short ' 指標ワーク（For Ix2 = ･･･）
+    Public RetVal As Object ' 実行ステータスワーク
+    Public Result As String ' 実行ステータスワーク
+    Public IniFormSize As System.Drawing.Size                                 '@@8001 S.SUZUKI ADD
+    Public BfFormName As String = ""                                '@@8001 S.SUZUKI ADD
+    '------------------------------------------------
+    ''''Public Rec1 As String                           ' テキスト読込ワーク（M30_060S)  '@000911 UDA
+    ''''Public Work_Send As String                                                      '@000911 UDA
+    ''''Public Instr_Str As Integer                                                     '@000911 UDA
+    ''''Public Save_Xxxx As String                                                      '@000911 UDA
+    ''''Dim W_Result As String * 50                                                     '@000911 UDA
+    ''''Dim W_Str As String * 1                                                         '@000911 UDA
+
+    'Public Sub oo_OrErr(ByRef Sql_Code As Integer) ' oo_OrErr()       '@001018
+    Public Sub oo_OrErr(ByVal Sql_Code As Integer, Optional ByVal Sql_Err As String = "") '20150608 ECT LIUSW MOD
+        '************************************************ オラクルエラー表示
+        ' ＯＲＡＣＬＥエラーメッセージ表示
+        '================================================
+      
