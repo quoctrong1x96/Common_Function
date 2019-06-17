@@ -1,0 +1,349 @@
+Option Strict Off
+Option Explicit On
+Module DFW_C00_050XB
+    '***********************************************************************
+    ' System : Factory-ONE 電脳工場
+    ' Title  : 外貨関連部品共通モジュール
+    ' Version: R 2.0.0
+    '-----------------------------------------------------------------------
+    ' 新 規  : @@8001 ENG YONASHIRO  : 新規作成
+    ' 更 新  : 20160606 FJN AN-TB    : 64bit対応
+    '***********************************************************************
+
+    Public Function GET_RATE(ByVal P_取引先C As String, ByVal P_買掛売掛K As String, _
+                             ByRef P_通貨C As String, ByVal P_前月当月K As Integer, _
+                             ByRef P_年月度 As String, ByRef P_為替レート As Double) As Boolean
+        '***********************************************
+        '為替レート取得
+
+        '-----------------------------------------------
+        Dim Ww_ERRCD As Integer = 0
+        Dim Ww_ERRTX As String = ""
+        '-----------------------------------------------
+        GET_RATE = True
+        With OraDatabase
+            Try
+                '----------------------------------------------- パラメータ作成
+                .Parameters.Add("I_050XB_取引先C", P_取引先C, ORAPARM_INPUT)
+                .Parameters.Add("I_050XB_買掛売掛K", P_買掛売掛K, ORAPARM_INPUT)
+                .Parameters.Add("IO_050XB_通貨C", P_通貨C, ORAPARM_BOTH)
+                .Parameters.Add("I_050XB_前月当月K", P_前月当月K, ORAPARM_INPUT)
+                .Parameters.Add("IO_050XB_年月度", P_年月度, ORAPARM_BOTH)
+                .Parameters.Add("O_050XB_為替レート", 0, ORAPARM_OUTPUT)
+                .Parameters.Add("O_050XB_ERRCD", 0, ORAPARM_OUTPUT)
+                .Parameters.Add("O_050XB_ERRTX", " ", ORAPARM_OUTPUT)
+                '-----------------------------------------------
+                .Parameters("I_050XB_取引先C").SERVERTYPE = ORATYPE_VARCHAR2
+                .Parameters("I_050XB_買掛売掛K").SERVERTYPE = ORATYPE_VARCHAR2
+                .Parameters("IO_050XB_通貨C").SERVERTYPE = ORATYPE_VARCHAR2
+                .Parameters("I_050XB_前月当月K").SERVERTYPE = ORATYPE_NUMBER
+                .Parameters("IO_050XB_年月度").SERVERTYPE = ORATYPE_VARCHAR2
+                .Parameters("O_050XB_為替レート").SERVERTYPE = ORATYPE_NUMBER
+                .Parameters("O_050XB_ERRCD").SERVERTYPE = ORATYPE_NUMBER
+                .Parameters("O_050XB_ERRTX").SERVERTYPE = ORATYPE_VARCHAR2
+                '-----------------------------------------------
+                OraDatabase.DbExecuteSQL("Begin C00_050.GET_RATE ( " & _
+                                                    " :I_050XB_取引先C      ,:I_050XB_買掛売掛K " & _
+                                                    ",:IO_050XB_通貨C       ,:I_050XB_前月当月K " & _
+                                                    ",:IO_050XB_年月度      ,:O_050XB_為替レート " & _
+                                                    ",:O_050XB_ERRCD        ,:O_050XB_ERRTX); end;")
+                '-----------------------------------------------
+                Ww_ERRCD = OraDatabase.Parameters("O_050XB_ERRCD").Value
+                If Ww_ERRCD <> 0 Then
+                    Ww_ERRTX = OraDatabase.Parameters("O_050XB_ERRTX").Value
+                    MsgBox("異常発生！！" & vbCrLf & "SQLCODE=" & Ww_ERRCD & vbCrLf & Ww_ERRTX, MsgBoxStyle.Exclamation)
+                    GET_RATE = False
+                Else
+                    P_通貨C = OraDatabase.Parameters("IO_050XB_通貨C").Value
+                    P_年月度 = OraDatabase.Parameters("IO_050XB_年月度").Value
+                    P_為替レート = OraDatabase.Parameters("O_050XB_為替レート").Value
+                End If
+                '-----------------------------------------------
+            Catch ex As Exception
+                MsgBox(ex.Message, MsgBoxStyle.Exclamation)
+                GET_RATE = False
+            Finally
+                .Parameters.Remove("I_050XB_取引先C")
+                .Parameters.Remove("I_050XB_買掛売掛K")
+                .Parameters.Remove("IO_050XB_通貨C")
+                .Parameters.Remove("I_050XB_前月当月K")
+                .Parameters.Remove("IO_050XB_年月度")
+                .Parameters.Remove("O_050XB_為替レート")
+                .Parameters.Remove("O_050XB_ERRCD")
+                .Parameters.Remove("O_050XB_ERRTX")
+            End Try
+        End With
+    End Function
+
+    Public Function SET_KINGA_GAIKA(ByVal P_取引先C As String, ByVal P_買掛売掛K As String, _
+                                    ByVal P_単価金額K As Integer, ByVal P_前月当月K As Integer, _
+                                    ByVal P_年月度 As String, ByVal P_外貨金額 As Double, _
+                                    ByRef P_円貨金額 As Double) As Boolean
+        '***********************************************
+        '単価金額換算
+
+        '-----------------------------------------------
+        Dim Ww_ERRCD As Integer = 0
+        Dim Ww_ERRTX As String = ""
+        '-----------------------------------------------
+        SET_KINGA_GAIKA = True
+        With OraDatabase
+            Try
+                '----------------------------------------------- パラメータ作成
+                .Parameters.Add("I_050XB_取引先C", P_取引先C, ORAPARM_INPUT)
+                .Parameters.Add("I_050XB_買掛売掛K", P_買掛売掛K, ORAPARM_INPUT)
+                .Parameters.Add("I_050XB_単価金額K", P_単価金額K, ORAPARM_INPUT)
+                .Parameters.Add("I_050XB_前月当月K", P_前月当月K, ORAPARM_INPUT)
+                .Parameters.Add("I_050XB_年月度", P_年月度, ORAPARM_INPUT)
+                .Parameters.Add("I_050XB_外貨金額", P_外貨金額, ORAPARM_INPUT)
+                .Parameters.Add("O_050XB_円貨金額", 0, ORAPARM_OUTPUT)
+                .Parameters.Add("O_050XB_ERRCD", 0, ORAPARM_OUTPUT)
+                .Parameters.Add("O_050XB_ERRTX", " ", ORAPARM_OUTPUT)
+                '-----------------------------------------------
+                .Parameters("I_050XB_取引先C").SERVERTYPE = ORATYPE_VARCHAR2
+                .Parameters("I_050XB_買掛売掛K").SERVERTYPE = ORATYPE_VARCHAR2
+                .Parameters("I_050XB_単価金額K").SERVERTYPE = ORATYPE_NUMBER
+                .Parameters("I_050XB_前月当月K").SERVERTYPE = ORATYPE_NUMBER
+                .Parameters("I_050XB_年月度").SERVERTYPE = ORATYPE_VARCHAR2
+                .Parameters("I_050XB_外貨金額").SERVERTYPE = ORATYPE_NUMBER
+                .Parameters("O_050XB_円貨金額").SERVERTYPE = ORATYPE_VARCHAR2
+                .Parameters("O_050XB_ERRCD").SERVERTYPE = ORATYPE_NUMBER
+                .Parameters("O_050XB_ERRTX").SERVERTYPE = ORATYPE_VARCHAR2
+                '-----------------------------------------------
+                OraDatabase.DbExecuteSQL("Begin C00_050.SET_KINGA_GAIKA (" & _
+                                                    " :I_050XB_取引先C    ,:I_050XB_買掛売掛K " & _
+                                                    ",:I_050XB_単価金額K  ,:I_050XB_前月当月K " & _
+                                                    ",:I_050XB_年月度     ,:I_050XB_外貨金額 " & _
+                                                    ",:O_050XB_円貨金額   ,:O_050XB_ERRCD  ,:O_050XB_ERRTX); end;")
+                '-----------------------------------------------
+                Ww_ERRCD = OraDatabase.Parameters("O_050XB_ERRCD").Value
+                If Ww_ERRCD <> 0 Then
+                    Ww_ERRTX = OraDatabase.Parameters("O_050XB_ERRTX").Value
+                    MsgBox("異常発生！！" & vbCrLf & "SQLCODE=" & Ww_ERRCD & vbCrLf & Ww_ERRTX, MsgBoxStyle.Exclamation)
+                    SET_KINGA_GAIKA = False
+                Else
+                    P_円貨金額 = OraDatabase.Parameters("O_050XB_円貨金額").Value
+                End If
+                '-----------------------------------------------
+            Catch ex As Exception
+                MsgBox(ex.Message, MsgBoxStyle.Exclamation)
+                SET_KINGA_GAIKA = False
+            Finally
+                .Parameters.Remove("I_050XB_取引先C")
+                .Parameters.Remove("I_050XB_買掛売掛K")
+                .Parameters.Remove("I_050XB_単価金額K")
+                .Parameters.Remove("I_050XB_前月当月K")
+                .Parameters.Remove("I_050XB_年月度")
+                .Parameters.Remove("I_050XB_外貨金額")
+                .Parameters.Remove("O_050XB_円貨金額")
+                .Parameters.Remove("O_050XB_ERRCD")
+                .Parameters.Remove("O_050XB_ERRTX")
+            End Try
+        End With
+    End Function
+
+    Public Function SET_ENKA(ByVal P_取引先C As String, ByVal P_買掛売掛K As String, _
+                             ByVal P_前月当月K As Integer, ByVal P_数量 As Double, _
+                             ByVal P_外貨単価 As Double, ByRef P_年月度 As String, _
+                             ByRef P_為替レート As Double, ByRef P_円貨単価 As Double, _
+                             ByRef P_外貨金額 As Double, ByRef P_円貨金額 As Double) As Boolean
+        '***********************************************
+        '数量単価金額換算
+
+        '-----------------------------------------------
+        Dim Ww_ERRCD As Integer = 0
+        Dim Ww_ERRTX As String = ""
+        '-----------------------------------------------
+        SET_ENKA = True
+        Try
+            Dim params(11) As OracleClient.OracleParameter
+            params(0) = OraDatabase.NewInputStrPara("P_取引先C", 15, P_取引先C)
+            params(1) = OraDatabase.NewInputStrPara("P_売掛買掛K", 3, P_買掛売掛K)
+            params(2) = OraDatabase.NewInputNumPara("P_前月当月K", 3, P_前月当月K)
+            params(3) = OraDatabase.NewInputNumPara("P_数量", 11, P_数量)
+            params(4) = OraDatabase.NewInputNumPara("P_外貨単価", 10, P_外貨単価)
+            params(5) = OraDatabase.NewOutputStrPara("P_年月度", 10, P_年月度)
+            params(6) = OraDatabase.NewOutputNumPara("P_為替レート", 11, 0)
+            params(7) = OraDatabase.NewOutputNumPara("P_円貨単価", 11, 0)
+            params(8) = OraDatabase.NewOutputNumPara("P_外貨金額", 11, 0)
+            params(9) = OraDatabase.NewOutputNumPara("P_円貨金額", 11, 0)
+            params(10) = OraDatabase.NewOutputNumPara("P_ERRCD", 6, 0)
+            params(11) = OraDatabase.NewOutputStrPara("P_ERRTX", 1000, 0)
+            '-----------------------------------------------------------
+            OraDatabase.CallProcedure("C00_050.SET_ENKA", params)
+            '-----------------------------------------------------------
+            Ww_ERRCD = params(10).Value
+            '-----------------------------------------------
+            If Ww_ERRCD <> 0 Then
+                Ww_ERRTX = params(11).Value
+                MsgBox("異常発生！！" & vbCrLf & "SQLCODE=" & Ww_ERRCD & vbCrLf & Ww_ERRTX, MsgBoxStyle.Exclamation)
+                SET_ENKA = False
+            Else
+                P_年月度 = params(5).Value
+                P_為替レート = params(6).Value
+                P_円貨単価 = params(7).Value
+                P_外貨金額 = params(8).Value
+                P_円貨金額 = params(9).Value
+            End If
+            '-----------------------------------------------
+        Catch ex As Exception
+            MsgBox(ex.Message, MsgBoxStyle.Exclamation)
+            SET_ENKA = False
+        End Try
+        '20160606 FJN AN-TB ADD END
+    End Function
+
+    Public Function SET_HASU_GAIKA(ByVal P_取引先C As String, ByVal P_買掛売掛K As String, _
+                                   ByRef P_通貨C As String, ByRef P_金額端数K As String, _
+                                   ByRef P_単価換算端数K As String, ByRef P_金額換算端数K As String, _
+                                   ByRef P_単価小数桁数 As Integer, ByRef P_金額小数桁数 As Integer) As Boolean
+        '***********************************************
+        '端数区分取得
+
+        '-----------------------------------------------
+        Dim Ww_ERRCD As Integer = 0
+        Dim Ww_ERRTX As String = ""
+        '-----------------------------------------------
+        SET_HASU_GAIKA = True
+        With OraDatabase
+            Try
+                '----------------------------------------------- パラメータ作成
+                .Parameters.Add("I_050XB_取引先C", P_取引先C, ORAPARM_INPUT)
+                .Parameters.Add("I_050XB_買掛売掛K", P_買掛売掛K, ORAPARM_INPUT)
+                .Parameters.Add("O_050XB_通貨C", " ", ORAPARM_OUTPUT)
+                .Parameters.Add("O_050XB_金額端数K", " ", ORAPARM_OUTPUT)
+                .Parameters.Add("O_050XB_単価換算端数K", " ", ORAPARM_OUTPUT)
+                .Parameters.Add("O_050XB_金額換算端数K", " ", ORAPARM_OUTPUT)
+                .Parameters.Add("O_050XB_単価小数桁数", 0, ORAPARM_OUTPUT)
+                .Parameters.Add("O_050XB_金額小数桁数", 0, ORAPARM_OUTPUT)
+                .Parameters.Add("O_050XB_ERRCD", 0, ORAPARM_OUTPUT)
+                .Parameters.Add("O_050XB_ERRTX", " ", ORAPARM_OUTPUT)
+                '-----------------------------------------------
+                .Parameters("I_050XB_取引先C").SERVERTYPE = ORATYPE_VARCHAR2
+                .Parameters("I_050XB_買掛売掛K").SERVERTYPE = ORATYPE_VARCHAR2
+                .Parameters("O_050XB_通貨C").SERVERTYPE = ORATYPE_VARCHAR2
+                .Parameters("O_050XB_金額端数K").SERVERTYPE = ORATYPE_VARCHAR2
+                .Parameters("O_050XB_単価換算端数K").SERVERTYPE = ORATYPE_VARCHAR2
+                .Parameters("O_050XB_金額換算端数K").SERVERTYPE = ORATYPE_VARCHAR2
+                .Parameters("O_050XB_単価小数桁数").SERVERTYPE = ORATYPE_NUMBER
+                .Parameters("O_050XB_金額小数桁数").SERVERTYPE = ORATYPE_NUMBER
+                .Parameters("O_050XB_ERRCD").SERVERTYPE = ORATYPE_NUMBER
+                .Parameters("O_050XB_ERRTX").SERVERTYPE = ORATYPE_VARCHAR2
+                '-----------------------------------------------
+                OraDatabase.DbExecuteSQL("Begin C00_050.SET_HASU_GAIKA ( " & _
+                                                 " :I_050XB_取引先C        ,:I_050XB_買掛売掛K " & _
+                                                 ",:O_050XB_通貨C          ,:O_050XB_金額端数K " & _
+                                                 ",:O_050XB_単価換算端数K  ,:O_050XB_金額換算端数K " & _
+                                                 ",:O_050XB_単価小数桁数   ,:O_050XB_金額小数桁数 " & _
+                                                 ",:O_050XB_ERRCD          ,:O_050XB_ERRTX); end;")
+                '-----------------------------------------------
+                Ww_ERRCD = OraDatabase.Parameters("O_050XB_ERRCD").Value
+                If Ww_ERRCD <> 0 Then
+                    Ww_ERRTX = OraDatabase.Parameters("O_050XB_ERRTX").Value
+                    MsgBox("異常発生！！" & vbCrLf & "SQLCODE=" & Ww_ERRCD & vbCrLf & Ww_ERRTX, MsgBoxStyle.Exclamation)
+                    SET_HASU_GAIKA = False
+                Else
+                    P_通貨C = OraDatabase.Parameters("O_050XB_通貨C").Value
+                    P_金額端数K = OraDatabase.Parameters("O_050XB_金額端数K").Value
+                    P_単価換算端数K = OraDatabase.Parameters("O_050XB_単価換算端数K").Value
+                    P_金額換算端数K = OraDatabase.Parameters("O_050XB_金額換算端数K").Value
+                    P_単価小数桁数 = OraDatabase.Parameters("O_050XB_単価小数桁数").Value
+                    P_金額小数桁数 = OraDatabase.Parameters("O_050XB_金額小数桁数").Value
+                End If
+                '-----------------------------------------------
+            Catch ex As Exception
+                MsgBox(ex.Message, MsgBoxStyle.Exclamation)
+                SET_HASU_GAIKA = False
+            Finally
+                .Parameters.Remove("I_050XB_取引先C")
+                .Parameters.Remove("I_050XB_買掛売掛K")
+                .Parameters.Remove("O_050XB_通貨C")
+                .Parameters.Remove("O_050XB_金額端数K")
+                .Parameters.Remove("O_050XB_単価換算端数K")
+                .Parameters.Remove("O_050XB_金額換算端数K")
+                .Parameters.Remove("O_050XB_単価小数桁数")
+                .Parameters.Remove("O_050XB_金額小数桁数")
+                .Parameters.Remove("O_050XB_ERRCD")
+                .Parameters.Remove("O_050XB_ERRTX")
+            End Try
+        End With
+    End Function
+
+    Public Function SET_ENKA_ZAN(ByVal P_取引先C As String, ByVal P_買掛売掛K As String, _
+                                 ByVal P_前月当月K As Integer, ByVal P_数量 As Double, _
+                                 ByVal P_外貨単価 As Double, ByRef P_年月度 As String, _
+                                 ByRef P_為替レート As Double, ByRef P_円貨金額 As Double, _
+                                 ByRef P_外貨金額 As Double) As Boolean
+        '***********************************************
+        '残金額計算
+
+        '-----------------------------------------------
+        Dim Ww_ERRCD As Integer = 0
+        Dim Ww_ERRTX As String = ""
+        '-----------------------------------------------
+        SET_ENKA_ZAN = True
+        With OraDatabase
+            Try
+                '----------------------------------------------- パラメータ作成
+                .Parameters.Add("I_050XB_取引先C", P_取引先C, ORAPARM_INPUT)
+                .Parameters.Add("I_050XB_買掛売掛K", P_買掛売掛K, ORAPARM_INPUT)
+                .Parameters.Add("I_050XB_前月当月K", P_前月当月K, ORAPARM_INPUT)
+                .Parameters.Add("I_050XB_数量", P_数量, ORAPARM_INPUT)
+                .Parameters.Add("I_050XB_外貨単価", P_外貨単価, ORAPARM_INPUT)
+                .Parameters.Add("IO_050XB_年月度", P_年月度, ORAPARM_BOTH)
+                .Parameters.Add("O_050XB_為替レート", 0, ORAPARM_OUTPUT)
+                .Parameters.Add("O_050XB_円貨金額", 0, ORAPARM_OUTPUT)
+                .Parameters.Add("O_050XB_外貨金額", 0, ORAPARM_OUTPUT)
+                .Parameters.Add("O_050XB_ERRCD", 0, ORAPARM_OUTPUT)
+                .Parameters.Add("O_050XB_ERRTX", " ", ORAPARM_OUTPUT)
+                '-----------------------------------------------
+                .Parameters("I_050XB_取引先C").SERVERTYPE = ORATYPE_VARCHAR2
+                .Parameters("I_050XB_買掛売掛K").SERVERTYPE = ORATYPE_VARCHAR2
+                .Parameters("I_050XB_前月当月K").SERVERTYPE = ORATYPE_NUMBER
+                .Parameters("I_050XB_数量").SERVERTYPE = ORATYPE_NUMBER
+                .Parameters("I_050XB_外貨単価").SERVERTYPE = ORATYPE_NUMBER
+                .Parameters("IO_050XB_年月度").SERVERTYPE = ORATYPE_VARCHAR2
+                .Parameters("O_050XB_為替レート").SERVERTYPE = ORATYPE_NUMBER
+                .Parameters("O_050XB_円貨金額").SERVERTYPE = ORATYPE_NUMBER
+                .Parameters("O_050XB_外貨金額").SERVERTYPE = ORATYPE_NUMBER
+                .Parameters("O_050XB_ERRCD").SERVERTYPE = ORATYPE_NUMBER
+                .Parameters("O_050XB_ERRTX").SERVERTYPE = ORATYPE_VARCHAR2
+                '-----------------------------------------------
+                OraDatabase.DbExecuteSQL("Begin C00_050.SET_ENKA_ZAN ( " & _
+                                                    " :I_050XB_取引先C        ,:I_050XB_買掛売掛K " & _
+                                                    ",:I_050XB_前月当月K      ,:I_050XB_数量 " & _
+                                                    ",:I_050XB_外貨単価       ,:IO_050XB_年月度 " & _
+                                                    ",:O_050XB_為替レート     ,:O_050XB_円貨金額 " & _
+                                                    ",:O_050XB_外貨金額" & _
+                                                    ",:O_050XB_ERRCD          ,:O_050XB_ERRTX); end;")
+                '-----------------------------------------------
+                Ww_ERRCD = OraDatabase.Parameters("O_050XB_ERRCD").Value
+                If Ww_ERRCD <> 0 Then
+                    Ww_ERRTX = OraDatabase.Parameters("O_050XB_ERRTX").Value
+                    MsgBox("異常発生！！" & vbCrLf & "SQLCODE=" & Ww_ERRCD & vbCrLf & Ww_ERRTX, MsgBoxStyle.Exclamation)
+                    SET_ENKA_ZAN = False
+                Else
+                    P_年月度 = OraDatabase.Parameters("IO_050XB_年月度").Value
+                    P_為替レート = OraDatabase.Parameters("O_050XB_為替レート").Value
+                    P_円貨金額 = OraDatabase.Parameters("O_050XB_円貨金額").Value
+                    P_外貨金額 = OraDatabase.Parameters("O_050XB_外貨金額").Value
+                End If
+                '-----------------------------------------------
+            Catch ex As Exception
+                MsgBox(ex.Message, MsgBoxStyle.Exclamation)
+                SET_ENKA_ZAN = False
+            Finally
+                .Parameters.Remove("I_050XB_取引先C")
+                .Parameters.Remove("I_050XB_買掛売掛K")
+                .Parameters.Remove("I_050XB_前月当月K")
+                .Parameters.Remove("I_050XB_数量")
+                .Parameters.Remove("I_050XB_外貨単価")
+                .Parameters.Remove("IO_050XB_年月度")
+                .Parameters.Remove("O_050XB_為替レート")
+                .Parameters.Remove("O_050XB_円貨金額")
+                .Parameters.Remove("O_050XB_ERRCD")
+                .Parameters.Remove("O_050XB_ERRTX")
+            End Try
+        End With
+    End Function
+End Module
