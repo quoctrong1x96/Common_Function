@@ -1,0 +1,367 @@
+Option Strict Off
+Option Explicit On
+Public Module CZZ_100XB
+    '****************************************************
+    ' System : Factory-ONE 電脳工場
+    ' Title  : 共通モジュール
+    ' Version: R 2.0.0
+    ' ---------------------------------------------------
+    ' 新規 : 000412  EX Nagao    :
+    ' 改造 : 000810  EX Nagao    : 出荷検索ロジック追加
+    ' 改造 : 010125  EX Nagao    : 製番検索時手配区分指定可とする
+    ' 改造 : 010125  EX Nagao    : 取引先検索時View指定可とする
+    ' 修正 : 010125  EX Nagao    : 備考検索時指定検索区分を有効にする
+    ' 改造 : 010125  EX Nagao    : 初期処理にﾃﾞｰﾀﾍﾞｰｽ接続完了判断追加
+    ' 改造 : 010413  EX Nagao    : ① Exe起動機能追加
+    ' 改造 : 010413  EX Nagao    : ② 単価取得機能追加
+    ' 改造 : 010413  EX Nagao    : ③ CreateDynaset MethodOptionsに電脳標準用追加
+    ' 改造 : 010417  EX Nagao    : ﾃﾞｰﾀﾍﾞｰｽ接続完了判断のOn/Offを逆にする
+    ' 改造 : 010602  EX Imazu    : 材質検索ロジック追加
+    ' 改造 : 010622  EX Imazu    : 在庫照会ロジック追加
+    ' 改造 : 020312  KUSUMI      : C00_003X で定義しているものなどを削除
+    ' 改造 : 0114  　EX HIRASAWA : 共通ダイアログ(C00_300X)追加
+    ' 改造 : @@6100  EX FUKUMURA : CrystalReport 8.5→10対応
+    ' 改造 : @@UPG.NET           : .NETアップグレードに伴う変更
+    ' 改造 : @@7100 ENG SHIMA_NORI : Update_C20C("INI") を削除
+    ' 改造 : @@8001 EX KAJI      : R2.0バージョンアップに伴う変更
+    ' 改造 : @@8001 EX OGINO     : VB6互換記述への対応
+    ' 変更 : 20160606 FJN VAN-KV  64Bit対応
+    ' 更  新 : 20170620 FJN AN-TB レポートをC1化する
+    '****************************************************
+    '****************************************************
+    '   インスタンス宣言（ＤＬＬ）
+    '****************************************************
+    '---------------------------------------------------- 共通処理
+    Public oo As Object ' ファンクション
+    Public C00_000XA As Object ' 基準情報取得
+    Public C00_001XA As Object ' データベース接続
+    Public C00_100EA As Object ' パスワード入力
+    Public C00_101EA As Object ' 処理区分入力
+    Public C00_200XA As Object ' メッセージ表示
+    Public C00_300XA As Object ' 共通ダイアログ                        '@@0114 HIRASAWA
+    Public C00_400XA As Object ' @@6100 FUKUMURA
+    Public C00_410XC As Object       '20170620 FJN AN-TB ADD
+    '---------------------------------------------------- トランザクション検索
+    Public Q10_010SA As Object ' 検査検索
+    Public H14_010SA As Object ' 発注検索
+    Public H34_010SA As Object ' 受入検索
+    Public J10_060SA As Object ' 製番検索
+    Public J30_020SA As Object ' 出荷検索                              '@000810
+    '---------------------------------------------------- マスター検索
+    Public M20_010SA As Object ' 名称検索
+    Public M20_020SA As Object ' 単位検索
+    Public M20_030SA As Object ' 備考検索
+    Public M30_010SA As Object ' 取引先検索
+    Public M40_070SA As Object ' 品目検索
+    Public M50_010SA As Object ' 人員検索
+    Public MK0_010SA As Object ' 機械検索
+    Public MN0_010SA As Object ' 金型検索
+    Public MZ0_010SA As Object ' 材質検索                              '@010602
+    '---------------------------------------------------- 照会
+    Public Z11_000EA As Object ' 在庫照会                              '@010622
+    '****************************************************
+    '   引数用宣言
+    '****************************************************
+    '---------------------------------------------------- 共通
+    Public Sch_Ans(1) As Object ' 検索結果
+    '---------------------------------------------------- メッセージ表示
+    Public Status As Short ' 戻り値
+    '---------------------------------------------------- 取引先検索時使用Ｖiew名           '@010125
+    Public Enum SchMode_View
+        C_全取引 = 0
+        C_場所 = 1
+        C_出荷 = 2
+        C_得意 = 3
+        C_仕入 = 4
+        C_加工 = 5
+        C_部署 = 6
+        C_得意仕入 = 7
+        C_得意部署 = 8
+        C_仕入加工 = 9
+        C_加工部署 = 10
+        C_仕入加工部署 = 11
+        C_得意仕入加工 = 12
+    End Enum
+    '****************************************************
+    '    フラグ
+    '****************************************************
+    Public OraConnect_Sts As Boolean ' データベース接続完了判断(True:接続完了)     '@010125
+    Public Frm_Sts As Boolean ' Form_Activate起動判断(True:起動)
+    Public Lfc_Run(2) As Object ' LostFocus起動判断(GotFocusで値セット)
+    '****************************************************
+    '   変数宣言（ＲＥＰＯＲＴ）
+    '****************************************************
+    Public Rpt_Select As String ' ReportSelect
+    '----------------------------------------------------
+    'Public DDs As Object                                ' DualDynaset                  '@020312 KUSUMI
+    Public M10M As Object ' M10MDynaset
+    Public Ds As Object ' 共通Dynaset
+    Public Dt1 As DataTable ' 共通Dynaset            '20160606 FJN VAN-KV ADD
+    Public M10MDt As DataTable ' M10MDataTable   '20160606 FJN VAN-KV ADD
+    '----------------------------------------------------
+    Public Str_WHERE As String ' Where句
+    Public Str_ORDER As String ' OrderBy句
+    Public Str_Group As String ' GroupBy句                             '@010622
+    Public Str_Select As String ' Select句                              '@010622
+    Public Str_from As String ' From句                                '@010622
+    ''****************************************************                                  '@020312 KUSUMI
+    ''   バインド変数宣言                                                                    '@020312 KUSUMI
+    ''****************************************************                                  '@020312 KUSUMI
+    ''---------------------------------------------------- ﾊﾞｲﾝﾄﾞ変数格納用配列              '@020312 KUSUMI
+    'Public sBind(1 To 60, 1 To 128) As String           ' 配列更新用 -- 配列名(行数,項目数)  '@020312 KUSUMI
+    'Public sBindN(1 To 128) As String                   ' 通常更新用 -- 配列名(項目数)       '@020312 KUSUMI
+    ''---------------------------------------------------- ﾊﾞｲﾝﾄﾞ変数（項目値）のｻｲｽﾞ        '@020312 KUSUMI
+    'Public nBSize(1 To 128) As Long                                                        '@020312 KUSUMI
+    ''---------------------------------------------------- ﾊﾞｲﾝﾄﾞ変数（項目値）が配列か配列でないか'@020312 KUSUMI
+    'Public nBType(1 To 128) As Long                                                        '@020312 KUSUMI
+    ''---------------------------------------------------- ﾊﾞｲﾝﾄﾞ変数（項目値）が入力か出力か '@020312 KUSUMI
+    'Public nBIO(1 To 128) As Long                                                          '@020312 KUSUMI
+    ''---------------------------------------------------- ﾊﾞｲﾝﾄﾞ変数（項目値）の数          '@020312 KUSUMI
+    'Public nBinds As Long                                                                  '@020312 KUSUMI
+    ''---------------------------------------------------- SQLﾊﾝﾄﾞﾙ                         '@020312 KUSUMI
+    'Public ghsql1 As Long                                                                  '@020312 KUSUMI
+    'Public ghsql2 As Long                                                                  '@020312 KUSUMI
+    'Public ghsql3 As Long                                                                  '@020312 KUSUMI
+    'Public ErrTxt As String                             ' エラーテキスト                    '@020312 KUSUMI
+    ''---------------------------------------------------- 状態ﾌﾗｸﾞ                         '@020312 KUSUMI
+    'Public nlnd As Long                                                                    '@020312 KUSUMI
+    Public Function Rtn_Init() As Object
+        '************************************************ 初期処理
+        ' 処理が異常終了すれば、『True』を返す。
+        '================================================
+        Rtn_Init = True
+        '------------------------------------------------
+        '    OraConnect_Sts = True                                                                      '@010125
+        OraConnect_Sts = False '@010417
+        '------------------------------------------------ 基準情報取得
+        Call C00_000XA_Result()
+        '------------------------------------------------ データベース接続
+        Result = C00_001XA.INIT(IniDrive, IniFile, Computer_Name, Save_Serv, Save_User, Save_Pass, OraSession, OraDatabase, SW_Err)
+        If SW_Err = "1" Then Exit Function
+        '------------------------------------------------
+        '    OraConnect_Sts = False                                                                    '@010125
+        OraConnect_Sts = True '@010417
+        '------------------------------------------------
+        Work_Computer = Computer_Name
+        Work_Program = IO.Path.GetFileNameWithoutExtension(Application.ExecutablePath)           '@@8001 FUKUMURA
+        Call_Program = IO.Path.GetFileNameWithoutExtension(Application.ExecutablePath)           '@@8001 FUKUMURA
+
+        '------------------------------------------------ コントロールマスター読込
+        Str_Sql = "SELECT * FROM DFW_M10M WHERE KEY = '01'"
+        System.GC.Collect()
+        'M10M = OraDatabase.DbcreateDynaset(Str_Sql, C00_003XB.DynasetFlags.OraDyn_No_BlankStrip)   '20160606 FJN VAN-KV DEL
+        M10MDt = OraDatabase.DataTable(Str_Sql)                                                       '20160606 FJN VAN-KV ADD
+        '------------------------------------------------ ログインジャーナル更新
+        'Call Update_C20C("INI") '@020312 KUSUMI             '@@7100 ENG SHIMA_NORI DEL
+        '------------------------------------------------ 受渡ファイル読込
+        Call GEQ_C40C()
+        If (SW_Err = "1") Then Exit Function
+        '------------------------------------------------ 起動方法確認
+        If Run4Exe() Then
+            '20160531 MODIFIED BY ECT CHENGMING START
+            'If (C40C_Dynaset.RecordCount = 0) OrElse (C40C_Dynaset!作業F.Value <> "1") Then '@020312 KUSUMI
+            If (C40C_Dt.Rows.Count <> 0) AndAlso (C40C_Dt.Rows(0).Item("作業F") = "1") Then
+            Else
+                '20160531 MODIFIED BY ECT CHENGMING END
+                MsgBox("実行できません。", MsgBoxStyle.Critical)
+                Exit Function
+            End If
+        End If
+        '------------------------------------------------ 受渡ファイル更新
+        Call Update_C40C() '@020312 KUSUMI
+        If SW_Err <> "" Then
+            MsgBox("受渡ファイル更新エラー ( " & SW_Err & " )", MsgBoxStyle.Critical)
+            Exit Function
+        End If
+        '------------------------------------------------
+        Rtn_Init = False
+    End Function
+    Public Function Dsp_Z10F(ByVal Q_作業F As String, ByVal Q_品目K As String, ByVal Q_品目C As String, ByVal Q_場所C As String, ByVal Q_取引先C As String) As Object
+        '************************************************ 在庫照会                              '@010622
+        Dsp_Z10F = Nothing          '@@8001 EX KAJI
+        Result = Z11_000EA.INIT(OraDatabase, Save_Serv, Save_User, Save_Pass, Q_作業F, "31", Q_品目K, Q_品目C, Q_場所C, Q_取引先C, ODPConnection)
+    End Function
+    Public Function Sch_H10F() As Object
+        '************************************************ 発注検索
+        Dim W_Ans0 As Integer
+        Dim W_Ans1 As Short
+        '================================================
+        Result = H14_010SA.INIT(OraDatabase, Save_Serv, Save_User, Save_Pass, W_Ans0, W_Ans1, ODPConnection)
+        '------------------------------------------------
+        Sch_Ans(0) = W_Ans0
+        Sch_Ans(1) = W_Ans1
+        '------------------------------------------------
+        If Sch_Ans(0) <> 0 Then
+            Sch_H10F = True
+        Else
+            Sch_H10F = False
+        End If
+    End Function
+    Public Function Sch_H30F(ByVal Q_発注SEQ As Integer) As Object
+        '************************************************ 受入検索
+        Dim W_Ans0 As Integer
+        Dim W_Ans1 As Short
+        '================================================
+        Result = H34_010SA.INIT(OraDatabase, Save_Serv, Save_User, Save_Pass, Q_発注SEQ, W_Ans0, W_Ans1, 0, 0, ODPConnection)
+        '------------------------------------------------
+        Sch_Ans(0) = W_Ans0
+        Sch_Ans(1) = W_Ans1
+        '------------------------------------------------
+        If Sch_Ans(0) <> 0 Then
+            Sch_H30F = True
+        Else
+            Sch_H30F = False
+        End If
+    End Function
+    'Public Function Sch_J10F(ByVal Q_製番 As String)
+    Public Function Sch_J10F(ByVal Q_製番 As String, Optional ByRef Q_手配K As String = "") As Object
+        '************************************************ 製番検索
+        Dim W_Ans0 As String
+        Dim W_Tehai As String '@010125
+        '================================================
+        W_Tehai = Q_手配K '@010125
+        If oo.Blank(W_Tehai) Then '@010125
+            W_Tehai = "2" '@010125
+        End If '@010125
+        W_Ans0 = ""         '@@8001 EX KAJI ADD
+        '------------------------------------------------
+        '    Result = J10_060SA.Init(OraDatabase, Save_Serv, Save_User, Save_Pass _
+        ''                            , "", "2", Q_製番, "2" _
+        ''                            , W_Ans0)                                                  '@010125
+        Result = J10_060SA.INIT(OraDatabase, Save_Serv, Save_User, Save_Pass, "", W_Tehai, Q_製番, W_Tehai, W_Ans0, ODPConnection)
+        '------------------------------------------------
+        Sch_Ans(0) = W_Ans0
+        '------------------------------------------------
+        If Not oo.Blank(Sch_Ans(0)) Then
+            Sch_J10F = True
+        Else
+            Sch_J10F = False
+        End If
+    End Function
+    Public Function Sch_J30F(ByVal Q_製番 As String) As Object '@000810
+        '************************************************ 出荷検索
+        Dim W_Ans0 As Integer
+        Dim W_Ans1 As Short
+        '================================================
+        Result = J30_020SA.INIT(OraDatabase, Save_Serv, Save_User, Save_Pass, Q_製番, W_Ans0, W_Ans1, "", ODPConnection)
+        '------------------------------------------------
+        Sch_Ans(0) = W_Ans0
+        Sch_Ans(1) = W_Ans1
+        '------------------------------------------------
+        If Sch_Ans(0) <> 0 Then
+            Sch_J30F = True
+        Else
+            Sch_J30F = False
+        End If
+    End Function
+    Public Function Sch_Q10F(ByVal Q_受入SEQ As Integer, ByVal Q_発注SEQ As Integer) As Object
+        '************************************************ 検査検索
+        Dim W_Ans0 As Integer
+        '================================================
+        Result = Q10_010SA.INIT(OraDatabase, Save_Serv, Save_User, Save_Pass, Q_受入SEQ, Q_発注SEQ, W_Ans0, ODPConnection)
+        '------------------------------------------------
+        Sch_Ans(0) = W_Ans0
+        '------------------------------------------------
+        If Sch_Ans(0) <> 0 Then
+            Sch_Q10F = True
+        Else
+            Sch_Q10F = False
+        End If
+    End Function
+    Public Function Sch_M20M_名称(ByVal Q_名称区分名 As String, Optional ByRef Q_ghsqlX As Integer = 0) As Object '@020312 KUSUMI
+        '************************************************ 名称区分検索
+        ' Q_名称区分名  : 名称区分名
+        ' Q_ghsqlX     : SQLハンドル(0:Router未使用時)
+        '------------------------------------------------
+        Dim W_Ans0 As String
+        '================================================
+        W_Ans0 = ""         '@@8001 EX KAJI ADD
+        '@@UPG.NET(DEL/S)
+        'Result = M20_010SA.INIT(OraDatabase, Save_Serv, Save_User, Save_Pass, Q_名称区分名, W_Ans0, "") '
+        ''                                , oo.MEISH1(OraDatabase, Q_ghsqlX, Q_名称区分名), W_Ans0, "") '@020312 KUSUMI
+        '@@UPG.NET(DEL/E)
+        Result = M20_010SA.INIT(OraDatabase, Save_Serv, Save_User, Save_Pass, Q_名称区分名, W_Ans0, "", ODPConnection)
+        '------------------------------------------------
+        Sch_Ans(0) = W_Ans0
+        '------------------------------------------------
+        If Not oo.Blank(Sch_Ans(0)) Then
+            Sch_M20M_名称 = True
+        Else
+            Sch_M20M_名称 = False
+        End If
+    End Function
+    Public Function Sch_M20M_単位(Optional ByRef Q_ghsqlX As Integer = 0) As Object '@020312 KUSUMI
+        '************************************************ 単位検索
+        ' Q_ghsqlX     : SQLハンドル(0:Router未使用時)
+        '------------------------------------------------
+        Dim W_Ans0 As String
+        W_Ans0 = ""         '@@8001 EX KAJI ADD
+        '================================================
+        Result = M20_020SA.INIT(OraDatabase, Save_Serv, Save_User, Save_Pass, W_Ans0, ODPConnection)
+        '------------------------------------------------
+        Sch_Ans(0) = W_Ans0
+        '------------------------------------------------
+        If Not oo.Blank(Sch_Ans(0)) Then
+            ''        Sch_Ans(0) = oo.MEISH2(OraDatabase, Q_ghsqlX, "単位コード", Sch_Ans(0))         '@020312 KUSUMI
+            Sch_Ans(0) = oo.MEISH2(OraDatabase, Q_ghsqlX, "76", Sch_Ans(0))
+            Sch_M20M_単位 = True
+        Else
+            Sch_Ans(0) = ""
+            Sch_M20M_単位 = False
+        End If
+    End Function
+    Public Function Sch_M20M_備考(ByVal Q_検索K As Short) As Object
+        '************************************************ 備考検索
+        Dim W_Ans0 As String
+        Dim W_Ans1 As String
+        '================================================
+        W_Ans0 = ""         '@@8001 EX KAJI ADD
+        W_Ans1 = ""         '@@8001 EX KAJI ADD
+        '    Q_検索K = 10                                                                       '@010125
+        Result = M20_030SA.INIT(OraDatabase, Save_Serv, Save_User, Save_Pass, Q_検索K, W_Ans0, W_Ans1, ODPConnection)
+        '------------------------------------------------
+        Sch_Ans(0) = W_Ans0
+        Sch_Ans(1) = W_Ans1
+        '------------------------------------------------
+        If Not oo.Blank(Sch_Ans(0)) Then
+            Sch_M20M_備考 = True
+        Else
+            Sch_M20M_備考 = False
+        End If
+    End Function
+    'Public Function Sch_M30M(ByVal Q_手配先C As String)                                    '@010125
+    Public Function Sch_M30M(ByVal Q_取引先C As String, Optional ByRef Q_View As SchMode_View = 0) As Object '@010125
+        '************************************************ 取引先検索
+        Dim W_Ans0 As String
+        Dim W_View As String '@010125
+        '================================================
+        W_Ans0 = ""         '@@8001 EX KAJI ADD
+        Select Case Q_View '@010125
+            Case 0 : W_View = "VIEW_DFW_M30M" '@010125
+            Case 1 : W_View = "VIEW_DFW_M30M_場所" '@010125
+            Case 2 : W_View = "VIEW_DFW_M30M_出荷" '@010125
+            Case 3 : W_View = "VIEW_DFW_M30M_得意" '@010125
+            Case 4 : W_View = "VIEW_DFW_M30M_仕入" '@010125
+            Case 5 : W_View = "VIEW_DFW_M30M_加工" '@010125
+            Case 6 : W_View = "VIEW_DFW_M30M_部署" '@010125
+            Case 7 : W_View = "VIEW_DFW_M30M_得意仕入" '@010125
+            Case 8 : W_View = "VIEW_DFW_M30M_得意部署" '@010125
+            Case 9 : W_View = "VIEW_DFW_M30M_仕入加工" '@010125
+            Case 10 : W_View = "VIEW_DFW_M30M_部署加工" '@010125
+            Case 11 : W_View = "VIEW_DFW_M30M_仕入加工部署" '@010125
+            Case 12 : W_View = "VIEW_DFW_M30M_得意仕入加工" '@010125
+            Case Else : W_View = "VIEW_DFW_M30M_仕入加工部署" '@010125
+        End Select '@010125
+        '------------------------------------------------
+        '    Result = M30_010SA.Init(OraDatabase, Save_Serv, Save_User, Save_Pass _
+        ''                                , Q_手配先C, "VIEW_DFW_M30M_仕入加工部署", W_Ans0)      '@010125
+        Result = M30_010SA.INIT(OraDatabase, Save_Serv, Save_User, Save_Pass, Q_取引先C, W_View, W_Ans0, ODPConnection)
+        '------------------------------------------------
+        Sch_Ans(0) = W_Ans0
+        '------------------------------------------------
+        If Not oo.Blank(Sch_Ans(0)) Then
+            Sch_M30M = True
+        Else
+            Sch_M30M = False
+        End If
+    End Function
