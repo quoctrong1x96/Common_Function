@@ -1,0 +1,202 @@
+
+    Public Function Sch_M40M(ByVal Q_品目K As String, ByVal Q_品目C As String) As Object
+        '************************************************ 品目検索
+        Dim W_Ans0 As String
+        Dim W_Ans1 As String
+        '================================================
+        W_Ans0 = ""         '@@8001 EX KAJI ADD
+        W_Ans1 = ""         '@@8001 EX KAJI ADD
+        Result = M40_070SA.INIT(OraDatabase, Save_Serv, Save_User, Save_Pass, "", "", "", "", "", "31" & Q_品目K, Q_品目C, W_Ans0, W_Ans1, "", ODPConnection)
+        '------------------------------------------------
+        Sch_Ans(0) = W_Ans0
+        Sch_Ans(1) = W_Ans1
+        '------------------------------------------------
+        If Not oo.Blank(Sch_Ans(1)) Then
+            Sch_M40M = True
+            Sch_Ans(0) = Mid(Sch_Ans(0), 3, 1)
+        Else
+            Sch_M40M = False
+        End If
+    End Function
+    Public Function Sch_M40M_工程(ByVal Q_工程C As String) As Object
+        '************************************************ 工程検索
+        Dim W_Ans0 As String
+        '================================================
+        W_Ans0 = ""         '@@8001 EX KAJI ADD
+        Result = M40_070SA.INIT(OraDatabase, Save_Serv, Save_User, Save_Pass, "", "", "", "", "", "31K", Q_工程C, "", W_Ans0, "", ODPConnection)
+        '------------------------------------------------
+        Sch_Ans(0) = W_Ans0
+        '------------------------------------------------
+        If Not oo.Blank(Sch_Ans(0)) Then
+            Sch_M40M_工程 = True
+        Else
+            Sch_M40M_工程 = False
+        End If
+    End Function
+    Public Function Sch_M50M() As Object
+        '************************************************ 人員検索
+        Dim W_Ans0 As String
+        '================================================
+        W_Ans0 = ""         '@@8001 EX KAJI ADD
+        Result = M50_010SA.INIT(OraDatabase, Save_Serv, Save_User, Save_Pass, W_Ans0, ODPConnection)
+        '------------------------------------------------
+        Sch_Ans(0) = W_Ans0
+        '------------------------------------------------
+        If Not oo.Blank(Sch_Ans(0)) Then
+            Sch_M50M = True
+        Else
+            Sch_M50M = False
+        End If
+    End Function
+    Public Function Sch_MK0M() As Object
+        '************************************************ 機械検索
+        Dim W_Ans0 As String
+        '================================================
+        W_Ans0 = ""         '@@8001 EX KAJI ADD
+        Result = MK0_010SA.INIT(OraDatabase, Save_Serv, Save_User, Save_Pass, W_Ans0, ODPConnection)
+        '------------------------------------------------
+        Sch_Ans(0) = W_Ans0
+        '------------------------------------------------
+        If Not oo.Blank(Sch_Ans(0)) Then
+            Sch_MK0M = True
+        Else
+            Sch_MK0M = False
+        End If
+    End Function
+    Public Function Sch_MN0M(ByVal Q_金型K As String) As Object
+        '************************************************ 金型検索
+        Dim W_Ans0 As String
+        Dim W_Ans1 As String
+        '================================================
+        W_Ans0 = ""         '@@8001 EX KAJI ADD
+        W_Ans1 = ""         '@@8001 EX KAJI ADD
+        Result = MN0_010SA.INIT(OraDatabase, Save_Serv, Save_User, Save_Pass, Q_金型K, W_Ans0, W_Ans1, ODPConnection)
+        '------------------------------------------------
+        Sch_Ans(0) = W_Ans0
+        Sch_Ans(1) = W_Ans1
+        '------------------------------------------------
+        If Not oo.Blank(Sch_Ans(1)) Then
+            Sch_MN0M = True
+        Else
+            Sch_MN0M = False
+        End If
+    End Function
+    Public Function Sch_MZ0M() As Object '@010602↓
+        '************************************************ 材質検索
+        Dim W_Ans0 As String
+        '================================================
+        W_Ans0 = ""         '@@8001 EX KAJI ADD
+        Result = MZ0_010SA.INIT(OraDatabase, Save_Serv, Save_User, Save_Pass, W_Ans0, ODPConnection)
+        '------------------------------------------------
+        Sch_Ans(0) = W_Ans0
+        '------------------------------------------------
+        If Not oo.Blank(Sch_Ans(0)) Then
+            Sch_MZ0M = True
+        Else
+            Sch_MZ0M = False
+        End If
+    End Function '@010602↑
+    '@@UPG.NET(DEL/S) C00_003XBにまとめる
+    'Private Sub Shell_Rtn(ByRef Command_Renamed As String) '@010413 ① ↓
+    '    '************************************************ Ｅｘｅ起動
+    '    Dim IDProcess As Integer
+    '    Dim hProcess As Integer
+    '    Dim ret As Integer
+    '    Dim lngProcessExitCode As Integer
+    '    '------------------------------------------------
+    '    Const ProCess_Query_Information As Integer = &H400
+    '    Const Status_Pending As Integer = &H103
+    '    Const Still_Active As Integer = Status_Pending
+    '    '================================================
+    '    IDProcess = Shell(Command_Renamed, AppWinStyle.NormalFocus)
+    '    '------------------------------------------------ プロセスオブジェクトのハンドルを取得
+    '    hProcess = OpenProcess(ProCess_Query_Information, False, IDProcess)
+    '    '------------------------------------------------ 新しいプロセスを作成できた場合
+    '    If hProcess <> 0 Then
+    '        '-------------------------------------------- ポーリング
+    '        Do
+    '            '---------------------------------------- プロセスの終了状態を取得
+    '            ret = GetExitCodeProcess(hProcess, lngProcessExitCode)
+    '            '---------------------------------------- オペレーティングシステムに制御を渡す
+    '            System.Windows.Forms.Application.DoEvents()
+    '            '-------------------------------------------- プロセスが終了していない間
+    '        Loop While lngProcessExitCode = Still_Active
+    '    Else
+    '        '-------------------------------------------- 待機は失敗
+    '        '従来の処理でも無視していたためコードを記述せず
+    '        'エラー処理のコードをここに記述すべき
+    '    End If
+    '    '------------------------------------------------ プロセスオブジェクトのハンドルをクローズ
+    '    ret = CloseHandle(hProcess)
+    'End Sub '@010413 ① ↑
+    '@@UPG.NET(DEL/E)
+    'Public Sub Upd_C20C(ByVal Mode As String, Optional F_処理区分 As String, Optional F_Seq1 As Long, Optional F_Seq2 As Integer, Optional F_製番 As String)   '@020312 KUSUMI
+    Public Sub Update_C20C(ByVal Mode As String, Optional ByRef F_処理区分 As String = "", Optional ByRef F_Seq1 As Integer = 0, Optional ByRef F_Seq2 As Short = 0, Optional ByRef F_製番 As String = "") '@020312 KUSUMI
+        '************************************************ ログインジャーナル更新  処理
+        '------------------------------------------------ セット ステータス
+        Select Case Mode
+            Case "INI"
+                FLG_動作K = "0"
+                FLG_SEQ1 = CStr(0)
+                FLG_SEQ2 = CStr(0)
+                FLG_製番 = " "
+            Case "END"
+                FLG_動作K = "9"
+                FLG_SEQ1 = CStr(0)
+                FLG_SEQ2 = CStr(0)
+                FLG_製番 = " "
+            Case "UPD"
+                FLG_動作K = F_処理区分
+                FLG_SEQ1 = CStr(F_Seq1)
+                FLG_SEQ2 = CStr(F_Seq2)
+                FLG_製番 = F_製番
+            Case Else
+                '
+        End Select
+        '------------------------------------------------ 更新
+        Call UPD_C20C() '@020312 KUSUMI
+        '    Call GEQ_C20C                                                      '@020312 KUSUMI
+        '    If Ds.RecordCount = 0 Then                                         '@020312 KUSUMI
+        '        Call UPD_C20C_INS                                              '@020312 KUSUMI
+        '    Else                                                               '@020312 KUSUMI
+        '        Call UPD_C20C_UPD                                              '@020312 KUSUMI
+        '    End If                                                             '@020312 KUSUMI
+    End Sub
+    'Public Sub Upd_C40C()                                                  '@010413 ①
+    'Public Sub Upd_C40C(Optional Q_NoClr As String)                        '@010413 ① '@020312 KUSUMI
+    Public Sub Update_C40C(Optional ByRef Q_NoClr As String = "") '@020312 KUSUMI
+        '************************************************
+        If Q_NoClr <> "SET" Then
+            '-------------------------------------------- クリア
+            With C40C
+                .コンピュータ = Computer_Name
+                .プログラム = Call_Program          '@@8001 FUKUMURA
+                .作業F = " "            '@@8001 EX OGINO ADD↓
+                .製番 = " "
+                .構成ID = " "
+                .手配ID = " "           '@@8001 EX OGINO ADD↑
+                .工順 = CShort("0")
+                .X31 = " "              '@@8001 EX OGINO ADD↓
+                .品目K = " "
+                .品目C = " "
+                .図面番号 = " "
+                .場所C = " "
+                .業者C = " "
+                .得意先C = " "
+                .取引先C = " "
+                .担当C = " "
+                .部署 = " "
+                .工程 = " "
+                .機械 = " "
+                .手配K = " "            '@@8001 EX OGINO ADD↑
+            End With
+        End If
+        '------------------------------------------------ 更新
+        Call UPD_C40C() '@020312 KUSUMI
+        '    If Ds.RecordCount = 0 Then                                         '@020312 KUSUMI
+        '        Call UPD_C40C_INS                                              '@020312 KUSUMI
+        '    Else                                                               '@020312 KUSUMI
+        '        Call UPD_C40C_UPD                                              '@020312 KUSUMI
+        '    End If                                                             '@020312 KUSUMI
+    End Sub
+End Module
