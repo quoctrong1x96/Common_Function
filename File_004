@@ -1,0 +1,365 @@
+
+    '@000421↓
+    Public Sub C00_H_TANKA()
+        '**************************************** 発注単価取得
+        G_TNK.TORI2 = "" '@000902                             '@@8001 EX.NAGAO UPD
+        G_TNK.TANK1 = 0 '@000902
+        G_TNK.TANK2 = 0 '@000902
+        G_TNK.LTIME = 0 '@000902
+        G_TNK.LOTSU = 0 '@000902
+        If Len(G_TNK.HINMK.TrimEnd) = 0 Or Len(G_TNK.HINMC.TrimEnd) = 0 Then   'TRIM$ → RTRIM @020312  '@@8001 EX.NAGAO UPD
+            Exit Sub
+        End If
+        If Len(G_TNK.TANI1.TrimEnd) = 0 Then  'TRIM$ → RTRIM @020312
+            G_TNK.TANI1 = " "
+        End If
+        If Len(G_TNK.TANI2.TrimEnd) = 0 Then  'TRIM$ → RTRIM @020312
+            G_TNK.TANI2 = " "
+        End If
+        '    If G_TNK.SURY1 = 0 And G_TNK.SURY2 = 0 Then             '@000706       '@@1025 KUSUMI ↓↓↓
+        '        G_TNK.TORI2 = G_TNK.TORI1                           '@001221
+        '        Exit Sub                                            '@000706
+        '    End If                                                  '@000706       '@@1025 KUSUMI ↑↑↑
+        '---------------------------------------- パラメータ設定
+        OraDatabase.Parameters.Add("TORI2", " ", ORAPARM_OUTPUT)
+        OraDatabase.Parameters("TORI2").SERVERTYPE = ORATYPE_VARCHAR2
+        OraDatabase.Parameters.Add("TANK1", 0, ORAPARM_OUTPUT)
+        OraDatabase.Parameters("TANK1").SERVERTYPE = ORATYPE_NUMBER
+        OraDatabase.Parameters.Add("TANK2", 0, ORAPARM_OUTPUT)
+        OraDatabase.Parameters("TANK2").SERVERTYPE = ORATYPE_NUMBER
+        OraDatabase.Parameters.Add("LTIME", 0, ORAPARM_OUTPUT)
+        OraDatabase.Parameters("LTIME").SERVERTYPE = ORATYPE_NUMBER
+        OraDatabase.Parameters.Add("LOTSU", 0, ORAPARM_OUTPUT)
+        OraDatabase.Parameters("LOTSU").SERVERTYPE = ORATYPE_NUMBER
+        OraDatabase.Parameters.Add("ERRCD", 0, ORAPARM_OUTPUT)
+        OraDatabase.Parameters("ERRCD").SERVERTYPE = ORATYPE_NUMBER
+        OraDatabase.Parameters.Add("ERRTX", " ", ORAPARM_OUTPUT)
+        OraDatabase.Parameters("ERRTX").SERVERTYPE = ORATYPE_VARCHAR2
+        '---------------------------------------- 発注単価取得
+        Str_Sql = "Begin C00_H_TANKA('" & exNsp(G_TNK.HINMK) & "'"  '@@8001 EX.NAGAO UPD
+        Str_Sql = Str_Sql & ",'" & exNsp(G_TNK.HINMC) & "'"         '@@8001 EX.NAGAO UPD
+        Str_Sql = Str_Sql & ",'" & G_TNK.TANI1 & "'"
+        Str_Sql = Str_Sql & ",'" & G_TNK.TANI2 & "'"
+        Str_Sql = Str_Sql & ",'" & G_TNK.SURY1 & "'"
+        Str_Sql = Str_Sql & ",'" & G_TNK.SURY2 & "'"
+        Str_Sql = Str_Sql & ",'" & exNsp(G_TNK.HIZUK) & "'"         '@@8001 EX.NAGAO UPD
+        Str_Sql = Str_Sql & ",'" & exNsp(G_TNK.TORI1) & "'"         '@@8001 EX.NAGAO UPD
+        Str_Sql = Str_Sql & ",:TORI2"
+        Str_Sql = Str_Sql & ",:TANK1"
+        Str_Sql = Str_Sql & ",:TANK2"
+        Str_Sql = Str_Sql & ",:LTIME"
+        Str_Sql = Str_Sql & ",:LOTSU"
+        Str_Sql = Str_Sql & ",:ERRCD"
+        Str_Sql = Str_Sql & ",:ERRTX); end;"
+        OraDatabase.DbExecuteSQL(Str_Sql)
+        G_TNK.ERRCD = OraDatabase.Parameters("ERRCD").Value
+        If G_TNK.ERRCD <> 0 Then
+            G_TNK.ERRTX = OraDatabase.Parameters("ERRTX").Value
+            '        MsgBox "異常発生！！" & vbCrLf & _
+            ''                "SQLCODE=" & G_TNK.ERRCD & vbCrLf & _
+            ''                G_TNK.ERRTX, vbExclamation
+        Else
+            G_TNK.TORI2 = OraDatabase.Parameters("TORI2").Value     '@@8001 EX.NAGAO UPD
+            G_TNK.TANK1 = OraDatabase.Parameters("TANK1").Value
+            G_TNK.TANK2 = OraDatabase.Parameters("TANK2").Value
+            G_TNK.LTIME = OraDatabase.Parameters("LTIME").Value
+            G_TNK.LOTSU = OraDatabase.Parameters("LOTSU").Value
+        End If
+        '---------------------------------------- パラメータ削除
+        OraDatabase.Parameters.Remove("TORI2")
+        OraDatabase.Parameters.Remove("TANK1")
+        OraDatabase.Parameters.Remove("TANK2")
+        OraDatabase.Parameters.Remove("LTIME")
+        OraDatabase.Parameters.Remove("LOTSU")
+        OraDatabase.Parameters.Remove("ERRCD")
+        OraDatabase.Parameters.Remove("ERRTX")
+    End Sub
+    Public Sub CG0_H_TANKA()
+        '**************************************** 発注単価取得
+        G_TNK.TORI2 = "" '@000902                                   '@@8001 EX.NAGAO UPD
+        G_TNK.TANK1 = 0 '@000902
+        G_TNK.TANK2 = 0 '@000902
+        G_TNK.LTIME = 0 '@000902
+        G_TNK.LOTSU = 0 '@000902
+        G_TNK.SAITE = 0 '@000902
+        G_TNK.CRNCY = ""                '@@8001 EX KAJI ADD 通貨C
+        If Len(G_TNK.HINMK.TrimEnd) = 0 Or Len(G_TNK.HINMC.TrimEnd) = 0 Then   'TRIM$ → RTRIM @020312  '@@8001 EX.NAGAO UPD
+            Exit Sub
+        End If
+        If Len(G_TNK.TANI1.TrimEnd) = 0 Then  'TRIM$ → RTRIM @020312
+            G_TNK.TANI1 = " "
+        End If
+        If Len(G_TNK.TANI2.TrimEnd) = 0 Then  'TRIM$ → RTRIM @020312
+            G_TNK.TANI2 = " "
+        End If
+        If Len(G_TNK.SEBAN.TrimEnd) = 0 Then                   '@@7100 ENG ARAKAKI↓            '@@8001 EX.NAGAO UPD
+            G_TNK.SEBAN = " "                                                                   '@@8001 EX.NAGAO UPD
+        End If                                                       '@@7100 ENG ARAKAKI↑
+        Dim parass(18) As OracleClient.OracleParameter
+        parass(0) = OraDatabase.NewInputStrPara("P_HINMK", 8, exNsp(G_TNK.HINMK))
+        parass(1) = OraDatabase.NewInputStrPara("P_HINMC", 40, exNsp(G_TNK.HINMC))
+        parass(2) = OraDatabase.NewInputStrPara("P_TANI", 4, G_TNK.TANI1)
+        parass(3) = OraDatabase.NewInputStrPara("P_TANI2", 4, G_TNK.TANI2)
+        parass(4) = OraDatabase.NewInputNumPara("P_SURYO", 15, G_TNK.SURY1)
+        parass(5) = OraDatabase.NewInputNumPara("P_SURYO2", 15, G_TNK.SURY2)
+        parass(6) = OraDatabase.NewInputStrPara("P_HIZUK", 10, exNsp(G_TNK.HIZUK))
+        parass(7) = OraDatabase.NewInputStrPara("P_TORIH", 15, exNsp(G_TNK.TORI1))
+        parass(8) = OraDatabase.NewInputStrPara("P_KOTEI", 40, exNsp(G_TNK.KOTEI))
+        parass(9) = OraDatabase.NewInputStrPara("P_SEBAN", 40, exNsp(G_TNK.SEBAN))
+        parass(10) = OraDatabase.NewOutputStrPara("P_TORIH2", 15, " ")
+        parass(11) = OraDatabase.NewOutputNumPara("P_TANKA", 15, 0)
+        parass(12) = OraDatabase.NewOutputNumPara("P_TANKA2", 15, 0)
+        parass(13) = OraDatabase.NewOutputNumPara("P_LTIME", 20, 0)
+        parass(14) = OraDatabase.NewOutputNumPara("P_LOTSU", 13, 0)
+        parass(15) = OraDatabase.NewOutputNumPara("P_SAITE", 13, 0)
+        parass(16) = OraDatabase.NewOutputStrPara("P_CRNCY", 3, " ")
+        parass(17) = OraDatabase.NewOutputNumPara("P_ERRCD", 20, 0)
+        parass(18) = OraDatabase.NewOutputStrPara("P_ERRTX", 2000, " ")
+
+        OraDatabase.CallProcedure("CG0_H_TANKA", parass)
+        G_TNK.ERRCD = parass(17).Value
+        If G_TNK.ERRCD <> 0 Then
+            G_TNK.ERRTX = parass(18).Value
+        Else
+            G_TNK.TORI2 = parass(10).Value
+            G_TNK.TANK1 = parass(11).Value
+            G_TNK.TANK2 = parass(12).Value
+            G_TNK.LTIME = parass(13).Value
+            G_TNK.LOTSU = parass(14).Value
+            G_TNK.SAITE = parass(15).Value
+            G_TNK.CRNCY = parass(16).Value
+        End If
+        '20160516 MODIFIED BY ECT LIUSW END
+    End Sub
+    Public Sub C00_J_TANKA()
+        '**************************************** 受注単価取得
+        G_TNK.TANK1 = 0 '@000902
+        G_TNK.LTIME = 0 '@000902
+        G_TNK.LOTSU = 0 '@000902
+        G_TNK.CRNCY = ""                '@@8001 EX KAJI 通貨C
+        If Len(G_TNK.HINMK.TrimEnd) = 0 Or Len(G_TNK.HINMC.TrimEnd) = 0 Then  'TRIM$ → RTRIM @020312   '@@8001 EX.NAGAO UPD
+            Exit Sub
+        End If
+        If Len(G_TNK.TANI1.TrimEnd) = 0 Then  'TRIM$ → RTRIM @020312
+            G_TNK.TANI1 = " "
+        End If
+        '---------------------------------------- パラメータ設定
+        OraDatabase.Parameters.Add("TANK1", 0, ORAPARM_OUTPUT)
+        OraDatabase.Parameters("TANK1").SERVERTYPE = ORATYPE_NUMBER
+        OraDatabase.Parameters.Add("LTIME", 0, ORAPARM_OUTPUT)
+        OraDatabase.Parameters("LTIME").SERVERTYPE = ORATYPE_NUMBER
+        OraDatabase.Parameters.Add("LOTSU", 0, ORAPARM_OUTPUT)
+        OraDatabase.Parameters("LOTSU").SERVERTYPE = ORATYPE_NUMBER
+        OraDatabase.Parameters.Add("CRNCY", " ", ORAPARM_OUTPUT)        '@@8001 EX KAJI
+        OraDatabase.Parameters("CRNCY").SERVERTYPE = ORATYPE_VARCHAR2   '@@8001 EX KAJI
+        OraDatabase.Parameters.Add("ERRCD", 0, ORAPARM_OUTPUT)
+        OraDatabase.Parameters("ERRCD").SERVERTYPE = ORATYPE_NUMBER
+        OraDatabase.Parameters.Add("ERRTX", " ", ORAPARM_OUTPUT)
+        OraDatabase.Parameters("ERRTX").SERVERTYPE = ORATYPE_VARCHAR2
+        '---------------------------------------- 発注単価取得
+        Str_Sql = "Begin C00_J_TANKA('" & exNsp(G_TNK.HINMK) & "'"      '@@8001 EX.NAGAO UPD
+        Str_Sql = Str_Sql & ",'" & exNsp(G_TNK.HINMC) & "'"             '@@8001 EX.NAGAO UPD
+        Str_Sql = Str_Sql & ",'" & G_TNK.TANI1 & "'"
+        Str_Sql = Str_Sql & ",'" & G_TNK.SURY1 & "'"
+        Str_Sql = Str_Sql & ",'" & exNsp(G_TNK.HIZUK) & "'"             '@@8001 EX.NAGAO UPD
+        Str_Sql = Str_Sql & ",'" & exNsp(G_TNK.TORI1) & "'"             '@@8001 EX.NAGAO UPD
+        Str_Sql = Str_Sql & ",:TANK1"
+        Str_Sql = Str_Sql & ",:LTIME"
+        Str_Sql = Str_Sql & ",:LOTSU"
+        Str_Sql = Str_Sql & ",:CRNCY"           '@@8001 EX KAJI ADD
+        Str_Sql = Str_Sql & ",:ERRCD"
+        Str_Sql = Str_Sql & ",:ERRTX); end;"
+        OraDatabase.DbExecuteSQL(Str_Sql)
+        G_TNK.ERRCD = OraDatabase.Parameters("ERRCD").Value
+        If G_TNK.ERRCD <> 0 Then
+            '        G_TNK.ERRTX = OraDatabase.Parameters("ERRTX").Value                '@011204
+            '        MsgBox "異常発生！！" & vbCrLf & _                                 '@011204
+            '                "SQLCODE=" & G_TNK.ERRCD & vbCrLf & _                      '@011204
+            '                G_TNK.ERRTX, vbExclamation
+        Else
+            G_TNK.TANK1 = OraDatabase.Parameters("TANK1").Value
+            G_TNK.LTIME = OraDatabase.Parameters("LTIME").Value
+            G_TNK.LOTSU = OraDatabase.Parameters("LOTSU").Value
+        End If
+        '---------------------------------------- パラメータ削除
+        OraDatabase.Parameters.Remove("TANK1")
+        OraDatabase.Parameters.Remove("LTIME")
+        OraDatabase.Parameters.Remove("LOTSU")
+        OraDatabase.Parameters.Remove("CRNCY")                          '@@8001 EX KAJI ADD
+        OraDatabase.Parameters.Remove("ERRCD")
+        OraDatabase.Parameters.Remove("ERRTX")
+    End Sub
+    '@000421↑
+    Public Function GET_Printer(ByRef Q_Report As String) As String
+        '******************************************** プリンタ情報取得              @0267 SHIMADU
+        Dim Ww_Cnt As Short
+        Dim Ww_Cnt2 As Short
+        Dim A_Ix1 As String
+        A_PrnDevice_Name = ""
+        A_PrnDriver_Name = ""
+        A_PrnPort = ""
+        A_Ix1 = ""          '@@8001 EX KAJI ADD
+        ''        A_PrnSheet_Size = ""                          ' 現在使用不可
+        ''        A_PrnSheet_Orie = ""                          ' 現在使用不可
+        '----------------------------------
+        CP0_000XA = New DFW_CP0_000X.CP0_000XC
+        '----------------------------------
+        Ww_Cnt = Len(Save_Crpt)
+        Ww_Cnt2 = InStrRev(Q_Report, ".")
+        '---------------------------------- 転送項目セット
+        If Ww_Cnt2 > 0 Then
+            Q_Ext = Mid(Q_Report, Ww_Cnt2 + 1)
+            Q_Report = Mid(Q_Report, Ww_Cnt + 1, (Ww_Cnt2 - 1) - Ww_Cnt)
+        Else
+            Q_Ext = "RPT"
+        End If
+        '---------------------------------- プリンタ情報
+        Result = CP0_000XA.Init(OraSession, OraDatabase, Work_Computer, Work_Program, Q_Report, Q_Ext, A_PrnDevice_Name, A_PrnDriver_Name, A_PrnPort, A_PrnSheet_Size, A_PrnSheet_Orie, A_PrnEtc1, A_PrnEtc2, A_Ix1)
+        '----------------------------------
+        GET_Printer = A_Ix1
+        '---------------------------------- 開放
+        CP0_000XA = Nothing
+    End Function
+    '@@0402 HIRASAWA ↓
+    Public Function GetOsVersion() As String
+        '
+        '----------------------------------     '@@8001 EX KAJI ADD ↓
+        GetOsVersion = ""
+        '---------------------------------- 
+        Dim os As System.OperatingSystem = System.Environment.OSVersion
+        Select Case os.Platform
+            Case PlatformID.Win32Windows
+                If os.Version.Major <= 4 Then
+                    Select Case os.Version.Minor
+                        Case 0
+                            GetOsVersion = "95"
+                        Case 10
+                            GetOsVersion = "98"
+                        Case 90
+                            GetOsVersion = "ME"
+                    End Select
+                End If
+            Case PlatformID.Win32NT
+                Select Case os.Version.Major
+                    Case 3
+                        GetOsVersion = "NT3"
+                    Case 4
+                        If os.Version.Minor = 0 Then
+                            GetOsVersion = "NT"
+                        End If
+                    Case 5
+                        If os.Version.Minor = 0 Then
+                            GetOsVersion = "2K"
+                        ElseIf os.Version.Minor = 1 Then
+                            GetOsVersion = "XP"
+                        End If
+                    Case 6
+                        If os.Version.Minor = 0 Then
+                            GetOsVersion = "Vista"
+                        End If
+                End Select
+            Case PlatformID.Win32S
+                GetOsVersion = "W32S"
+            Case Else
+                GetOsVersion = "Undefine"
+        End Select
+        '----------------------------------     '@@8001 EX KAJI ADD ↑
+    End Function
+    '@@0402 HIRASAWA ↑
+    Private Function GetVersionEx(ByRef lpVersionInformation As OSVERSIONINFO) As Integer
+        '***********************************************
+        ' OSのバージョンを返す
+        ' GetVersionExのAPIを再現する
+        ' dwOSVersionInfoSize及びszCSDVersionはAPIの
+        ' 取得が必要
+        '_______________________________________________
+        ' 新規作成
+        '***********************************************
+        lpVersionInformation.dwBuildNumber = Environment.OSVersion.Version.Build
+        lpVersionInformation.dwMajorVersion = Environment.OSVersion.Version.Major
+        lpVersionInformation.dwMinorVersion = Environment.OSVersion.Version.Minor
+        lpVersionInformation.dwPlatformId = Environment.OSVersion.Platform
+        GetVersionEx = 1
+    End Function
+    Public Sub Shell_Rtn(ByRef Command_Renamed As String)
+        '************************************************ Ｅｘｅ起動
+        Dim myProcess As New Process
+        On Error GoTo err
+        myProcess.StartInfo.FileName = Command_Renamed
+        myProcess.StartInfo.CreateNoWindow = True
+        myProcess.Start()
+        Do
+            System.Windows.Forms.Application.DoEvents()
+        Loop Until (myProcess.HasExited)
+err:
+        myProcess.Close()
+        On Error GoTo 0
+    End Sub
+    Public Sub Shell_Rtn2(ByRef Command_Renamed As String)
+        '************************************************ Ｅｘｅ起動
+        ' 呼び出し元プログラムの操作不可
+        On Error GoTo err
+        Dim pInfo As New ProcessStartInfo
+        pInfo.FileName = Command_Renamed
+        Dim p As Process = Process.Start(pInfo)
+        p.WaitForInputIdle()
+        p.WaitForExit()
+err:
+        'myProcess.Close()
+        On Error GoTo 0
+    End Sub
+    Public Function exLenB(ByVal s As String) As Integer
+        '************************************************ バイト数返却
+        Return System.Text.Encoding.Default.GetByteCount(s)
+    End Function
+    Public Function exLeftB(ByVal Str As String, ByVal ByteLen As Integer) As String
+        '****************************** 文字列の左端から指定バイト数分返却
+        If Str Is Nothing OrElse ByteLen < 1 Then
+            Return ""
+        Else
+            Dim RetLen As Integer
+            For i As Integer = 1 To Str.Length
+                If System.Text.Encoding.Default.GetByteCount(Mid(Str, 1, i)) > ByteLen Then
+                    Exit For
+                Else
+                    RetLen = i
+                End If
+            Next
+            Return Mid(Str, 1, RetLen)
+        End If
+    End Function
+    Public Function MsgBox(ByVal Prompt As Object, Optional ByVal Buttons As Microsoft.VisualBasic.MsgBoxStyle = 0, Optional ByVal Title As Object = Nothing) As Microsoft.VisualBasic.MsgBoxResult
+        '************************************************ LOG機能追加 ADDED BY ECT LVLU AT 2010/12/26
+        If Environment.GetEnvironmentVariable("StartProgram") IsNot Nothing And Environment.GetEnvironmentVariable("StartProgram") = "BatchProgram" Then
+            Dim Log As Microsoft.VisualBasic.Logging.Log
+            Log = My.Application.Log
+            Log.DefaultFileLogWriter.DiskSpaceExhaustedBehavior = Logging.DiskSpaceExhaustedOption.ThrowException
+            Log.DefaultFileLogWriter.AutoFlush = True
+            If Environment.GetEnvironmentVariable("LogMaxFileSize") IsNot Nothing Then
+                Log.DefaultFileLogWriter.MaxFileSize = Environment.GetEnvironmentVariable("LogMaxFileSize")
+            End If
+            If Environment.GetEnvironmentVariable("LogCustomLocation") IsNot Nothing Then
+                Log.DefaultFileLogWriter.CustomLocation = Environment.GetEnvironmentVariable("LogCustomLocation")
+            End If
+            If Environment.GetEnvironmentVariable("LogName") IsNot Nothing Then
+                Log.DefaultFileLogWriter.BaseFileName = Environment.GetEnvironmentVariable("LogName")
+            End If
+            Try
+                Log.DefaultFileLogWriter.Write(Prompt)
+                Log.DefaultFileLogWriter.WriteLine("")
+                Log.DefaultFileLogWriter.Close()
+                Log.DefaultFileLogWriter.Dispose()
+                Return Nothing
+            Catch ex As Exception
+                Log.DefaultFileLogWriter.Dispose()
+                Microsoft.VisualBasic.Interaction.MsgBox(ex.Message, 16)
+                Application.Exit()
+            End Try
+        End If
+        '************************************************ END ADDED BY ECT LVLU
+        '************************************************ MsgBox。タイトルに「AssemblyTitle」表示機能追加
+        If Title = Nothing Then
+            Title = System.Reflection.Assembly.GetExecutingAssembly.GetCustomAttributes(GetType(System.Reflection.AssemblyTitleAttribute), True).GetValue(0).Title
+        End If
+        Return Microsoft.VisualBasic.Interaction.MsgBox(Prompt, Buttons, Title)
+    End Function
