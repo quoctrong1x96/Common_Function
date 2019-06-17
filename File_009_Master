@@ -1,0 +1,52 @@
+Option Strict Off
+Option Explicit On
+
+Imports Backlog4net
+Imports Backlog4net.Api.Option
+Imports Backlog4net.Conf
+Imports Amazon.DynamoDBv2
+Imports Amazon.DynamoDBv2.Model
+
+Public Class C00_BL0XB
+    '*******************************************************************************
+    ' System : 千代田グラビア全社統合システム
+    ' Title  : 共通モジュール
+    ' Version: R 2.0.0
+    '-------------------------------------------------------------------------------
+    ' 新規    : 20180712 AN-TB 新規開発
+    '*******************************************************************************
+    '************************************************
+    '   ﾒﾝﾊﾞ変数
+    '************************************************
+    Public Function SearchIssueNo(ByVal P_dynamoClient As AmazonDynamoDBClient, ByVal P_tableName As String, ByVal P_handleDate As String, ByVal P_deliveryFolder As String) As String
+        Dim issueNo As String = ""
+        Dim request = New QueryRequest(P_tableName)
+        Dim PartitionKey As New Dictionary(Of String, Condition)
+        Dim handleKey As New Condition
+        handleKey.ComparisonOperator = ComparisonOperator.EQ
+        Dim att1 As New List(Of AttributeValue)
+        att1.Add(New AttributeValue(P_handleDate))
+        handleKey.AttributeValueList = att1
+        Dim sortKey As New Condition
+        sortKey.ComparisonOperator = ComparisonOperator.BEGINS_WITH
+        Dim att2 As New List(Of AttributeValue)
+        att2.Add(New AttributeValue(P_deliveryFolder))
+        sortKey.AttributeValueList = att2
+        PartitionKey.Add("HandleDate", handleKey)
+        PartitionKey.Add("DelieveryFileName", sortKey)
+        Dim dictionary As New Dictionary(Of String, AttributeValue)
+        request.ExclusiveStartKey = dictionary
+        request.KeyConditions = PartitionKey
+        Dim response As New QueryResponse
+        Try
+            response = P_dynamoClient.Query(request)
+            If response.Count <> 0 Then
+                issueNo = response.Items(0).Item("IssueKey").S.ToString
+            End If
+        Catch ex As Exception
+        End Try
+        '-----------------------------------------------------------------------
+        Return issueNo
+    End Function
+
+End Class
