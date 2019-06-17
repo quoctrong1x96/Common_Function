@@ -1,0 +1,361 @@
+Option Strict Off
+Option Explicit On
+Imports System.Data.OracleClient '20180611 ADDED BY ECT CHENGMING
+
+Public Module C00_004XB
+    '*******************************************************************************
+    ' System : Factory-ONE 電脳工場
+    ' Title  : 共通モジュール
+    ' Version: R 2.0.0
+    '*******************************************************************************
+    ' ******************************************* 共通グローバル変数　宣言
+    Structure W_G
+        '--------------------------------
+        Dim SURYO As Decimal ' 数　量
+        Dim TANKA As Decimal ' 単　価
+        Dim KINGA As Decimal ' 金　額
+        Dim HASUU As String  ' 端数区分(名称Ｍ24)                                       '@@8001 EX.NAGAO UPD
+        '-------------------------------
+        Dim ZEIKU As String ' 税額計算　区分（191:外税,192:内税,193:無税）              '@@8001 EX.NAGAO UPD
+        Dim ZEIHI As String ' 　〃　　　日付                                            '@@8001 EX.NAGAO UPD
+        Dim ZEIRI As Decimal ' 　〃　　　税率
+        Dim ZEIGA As Decimal ' 　〃　　　税額
+        Dim ZEIGB As Decimal ' 　〃　　　本体
+        Dim ZEIGC As Decimal ' 　〃　　　本体＋税額
+        Dim ZEIGW As Decimal ' 　〃　　　初期金額
+        '-------------------------------
+        Dim CUR01 As Decimal
+        Dim CUR02 As Decimal
+    End Structure
+    Public G As W_G
+    '********************************************************************************* '@00/11/13 KUSUMI ↓↓↓
+    Sub TIME_CONV(ByRef IN_VAL As Decimal, ByRef IN_TANI_FROM As String, ByRef IN_TANI_TO As String, ByRef IN_HASUU As String, ByRef OUT_VAL As Decimal)
+        '**************************************** 時間 ←→ 工数 変換
+        '    IN_VAL       As Currency        ' 変換前の値（秒、分、時、日、工数）
+        '    IN_TANI_FROM As String * 1      ' 変換前単位（"S","M","H","D","K"）
+        '    IN_TANI_TO   As String * 1      ' 変換後単位（"S","M","H","D","K"）
+        '    IN_HASUU     As String * 5      ' 端数区分(名称Ｍ24･･･"24XXX")
+        '    OUT_VAL      As Currency        ' 変換後の値（秒、分、時、日、工数）
+        '--------------------------------------- 初期化
+        Dim 変換TBL(5, 5) As Double
+        Dim I As Short
+        Dim J As Short
+        Dim W_HASUU As String
+        Dim W_SCALE As Short
+        Dim W_VAL1 As Double
+        Dim W_VAL2 As Double
+        Dim W_VAL3 As Double
+        '
+        '--------------------------------------- 変換テーブルセット
+        Call SET_変換TBL(変換TBL)
+        '--------------------------------------- INDEX セット
+        Select Case RTrim(IN_TANI_FROM)
+            Case "S"
+                I = 1
+            Case "M"
+                I = 2
+            Case "H"
+                I = 3
+            Case "D"
+                I = 4
+            Case "K"
+                I = 5
+            Case Else
+                I = 0
+        End Select
+        '
+        Select Case RTrim(IN_TANI_TO)
+            Case "S"
+                J = 1
+            Case "M"
+                J = 2
+            Case "H"
+                J = 3
+            Case "D"
+                J = 4
+            Case "K"
+                J = 5
+            Case Else
+                J = 0
+        End Select
+        '
+        '--------------------------------------- 計　算
+        If I <> 0 And J <> 0 Then
+            W_VAL1 = 変換TBL(I, J)
+        Else
+            W_VAL1 = 0
+        End If
+        W_VAL2 = IN_VAL
+        W_VAL3 = W_VAL1 * W_VAL2
+        '--------------------------------------- 端数処理
+        W_HASUU = Mid(IN_HASUU, 3, 3)
+        Select Case Mid(W_HASUU, 1, 2)
+            Case "01"
+                W_SCALE = 0
+            Case "02"
+                W_SCALE = 1
+            Case "03"
+                W_SCALE = 2
+            Case "04"
+                W_SCALE = 3
+            Case "11"
+                W_SCALE = -1
+            Case "12"
+                W_SCALE = -2
+            Case "13"
+                W_SCALE = -3
+            Case Else
+                W_SCALE = 1
+                W_HASUU = "020"
+        End Select
+        Call SET_端数(W_VAL3, W_HASUU, W_SCALE) ' 端数処理
+        '
+        OUT_VAL = W_VAL3
+    End Sub
+    Private Sub SET_変換TBL(ByRef 変換TBL(,) As Double)
+        '**************************************** TIME_CONV用変換テーブルセット
+        Dim M10M_KOSU As Short
+        Dim M10M_DAY As Short
+        '---------------------------------------- コントロールＭ ＲＥＡＤ
+        Call GET_M10M(M10M_KOSU, M10M_DAY)
+        '----------------------------------------
+        変換TBL(1, 1) = 1 ' "S" to "S"
+        変換TBL(1, 2) = 1 / 60 ' "S" to "M"
+        変換TBL(1, 3) = 1 / 3600 ' "S" to "H"
+        If M10M_DAY <> 0 Then
+            変換TBL(1, 4) = 1 / 60 / M10M_DAY ' "S" to "D"
+        Else
+            変換TBL(1, 4) = 0
+        End If
+        If M10M_KOSU <> 0 Then
+            変換TBL(1, 5) = 1 / 60 / M10M_KOSU ' "S" to "K"
+        Else
+            変換TBL(1, 5) = 0
+        End If
+        '
+        変換TBL(2, 1) = 60 ' "M" to "S"
+        変換TBL(2, 2) = 1 ' "M" to "M"
+        変換TBL(2, 3) = 1 / 60 ' "M" to "H"
+        If M10M_DAY <> 0 Then
+            変換TBL(2, 4) = 1 / M10M_DAY ' "M" to "D"
+        Else
+            変換TBL(2, 4) = 0
+        End If
+        If M10M_KOSU <> 0 Then
+            変換TBL(2, 5) = 1 / M10M_KOSU ' "M" to "K"
+        Else
+            変換TBL(2, 5) = 0
+        End If
+        '
+        変換TBL(3, 1) = 3600 ' "H" to "S"
+        変換TBL(3, 2) = 60 ' "H" to "M"
+        変換TBL(3, 3) = 1 ' "H" to "H"
+        If M10M_DAY <> 0 Then
+            変換TBL(3, 4) = 60 / M10M_DAY ' "H" to "D"
+        Else
+            変換TBL(3, 4) = 0
+        End If
+        If M10M_KOSU <> 0 Then
+            変換TBL(3, 5) = 60 / M10M_KOSU ' "H" to "K"
+        Else
+            変換TBL(3, 5) = 0
+        End If
+        '
+        変換TBL(4, 1) = M10M_DAY * 60 ' "D" to "S"
+        変換TBL(4, 2) = M10M_DAY ' "D" to "M"
+        変換TBL(4, 3) = M10M_DAY / 60 ' "D" to "H"
+        変換TBL(4, 4) = 1 ' "D" to "D"
+        If M10M_KOSU <> 0 Then
+            変換TBL(4, 5) = M10M_DAY / M10M_KOSU ' "D" to "K"
+        Else
+            変換TBL(4, 5) = 0
+        End If
+        '
+        変換TBL(5, 1) = M10M_KOSU * 60 ' "K" to "S"
+        変換TBL(5, 2) = M10M_KOSU ' "K" to "M"
+        変換TBL(5, 3) = M10M_KOSU / 60 ' "K" to "H"
+        If M10M_DAY <> 0 Then
+            変換TBL(5, 4) = M10M_KOSU / M10M_DAY ' "K" to "D"
+        Else
+            変換TBL(5, 4) = 0
+        End If
+        変換TBL(5, 5) = 1 ' "K" to "K"
+    End Sub
+    Private Sub GET_M10M(ByRef M10M_工数 As Short, ByRef M10M_日 As Short)
+        '************************************************ コントロールＭ ＲＥＡＤ
+        Dim W_M10M_Dt As DataTable  '20160606 FJN VAN-KV ADD
+        Dim Sql_Code As Integer
+        '
+        On Error GoTo GET_M10M_10
+        '------------------------------------------------
+        Sql_Code = 0
+        M10M_工数 = 0
+        M10M_日 = 0
+        '-------------------------------------------- SQL文発行
+        Str_Sql = "SELECT"
+        Str_Sql = Str_Sql & " NVL(工数算定値_工数,0) AS 工数算定値_工数"
+        Str_Sql = Str_Sql & ",NVL(工数算定値_日,0) AS 工数算定値_日"
+        Str_Sql = Str_Sql & " FROM DFW_M10M"
+        Str_Sql = Str_Sql & " WHERE KEY = '01'"
+        '------------------------------------------------ レコードセット
+        System.GC.Collect()
+        W_M10M_Dt = OraDatabase.DataTable(Str_Sql)
+        If W_M10M_Dt.Rows.Count <> 0 Then
+            M10M_工数 = W_M10M_Dt.Rows(0).Item("工数算定値_工数")
+            M10M_日 = W_M10M_Dt.Rows(0).Item("工数算定値_日")
+        End If
+        '------------------------------------------------
+        W_M10M_Dt = Nothing '@011011
+        '20160606 FJN VAN-KV ADD END
+        Exit Sub
+GET_M10M_10:
+        '================================================ オラクルエラー処理                     '@000914
+        Call oo_OrErr(Sql_Code)
+    End Sub
+    Sub SET_端数(ByRef P_SURYO As Double, ByRef P_HASUU As String, ByRef P_SCALE As Short)
+        '**************************************** 数量端数処理パッケージＣＡＬＬ
+        Try
+            Dim parass(2) As OracleClient.OracleParameter
+            parass(0) = OraDatabase.NewPara("P_SURYO", OracleType.Number, 15, ParameterDirection.InputOutput, P_SURYO)
+            parass(1) = OraDatabase.NewInputStrPara("P_HASUU", 8, P_HASUU)
+            parass(2) = OraDatabase.NewInputNumPara("P_SCALE", 1, P_SCALE)
+            '---------------------------------------- 数量端数処理
+            OraDatabase.CallProcedure("C00_010.SET_SURYO", parass)
+            If Not IsDBNull(parass(0).Value) Then
+                P_SURYO = parass(0).Value
+            Else
+                P_SURYO = 0
+            End If
+        Catch ex As OracleClient.OracleException
+            oo_OrErr(ex.Code, ex.Message)
+        Catch ex As Exception
+            MsgBox(ex.Message)
+        End Try
+        '20160606 FJN VAN-KV ADD END
+    End Sub
+    '********************************************************************************* '@00/11/13 KUSUMI ↑↑↑
+    '
+    Function SET_SPC(ByRef P_DATA As Object) As String
+        '**************************************** 文字列の長さが０のとき、スペースをセット
+        If Len(P_DATA) = 0 Then
+            SET_SPC = " "
+        Else
+            SET_SPC = P_DATA
+        End If
+    End Function
+    Function CHK_DATE(ByRef P_DATE As Integer) As Short
+        '**************************************** 日付整合性　チェック
+        ' W_YYYMMDD : チェック対象日付
+        Dim WW_YMDL As Integer
+        Dim WW_YMDS As String
+        '
+        CHK_DATE = False
+        '---------------------------------------- 日付８桁編集
+        WW_YMDL = SET_DATE_LL8(P_DATE)
+        WW_YMDS = CStr(WW_YMDL)                                         '@@8001 EX.NAGAO UPD
+        '---------------------------------------- チェック
+        If (Mid(exAsp(WW_YMDS, 8), 5, 2) < "01") Or (Mid(exAsp(WW_YMDS, 8), 5, 2) > "12") Then '@@8001 EX.NAGAO UPD
+            Exit Function
+        End If
+        If (Mid(exAsp(WW_YMDS, 8), 7, 2) < "01") Or (Mid(exAsp(WW_YMDS, 8), 7, 2) > SET_DATE_LAST(WW_YMDL)) Then    '@@8001 EX.NAGAO UPD
+            Exit Function
+        End If
+        '
+        CHK_DATE = True
+    End Function
+    Function SET_DATE_LAST(ByRef P_DATE As Integer) As String
+        '**************************************** 月末日を求める
+        Dim WW_YMD As String                                        '@@8001 EX.NAGAO UPD
+        '
+        SET_DATE_LAST = ""
+        WW_YMD = CStr(P_DATE)                                       '@@8001 EX.NAGAO UPD
+        '
+        Select Case Mid(exAsp(WW_YMD, 8), 5, 2) ' 月                '@@8001 EX.NAGAO UPD
+            Case "02"
+                If CInt(Mid(exAsp(WW_YMD, 8), 1, 4)) Mod 4 = 0 Then '@@8001 EX.NAGAO ADD
+                    SET_DATE_LAST = "29" ' 閏年
+                Else
+                    SET_DATE_LAST = "28" ' 通常
+                End If
+            Case "04", "06", "09", "11"
+                SET_DATE_LAST = "30"
+            Case Else
+                SET_DATE_LAST = "31"
+        End Select
+    End Function
+    Function SET_DATE_LL8(ByRef P_DATE As Integer) As Integer
+        '**************************************** 日付編集（６桁 >> ８桁）
+        Dim WW_YMD As String                                        '@@8001 EX.NAGAO UPD
+        '
+        SET_DATE_LL8 = 0
+        If P_DATE = 0 Then Exit Function
+        '
+        If P_DATE <= 999999 Then
+            '----- ６桁入力
+            WW_YMD = Right("000000" & CStr(P_DATE), 6)              '@@8001 EX.NAGAO UPD
+            If CShort(Mid(exAsp(WW_YMD, 8), 1, 2)) > 80 Then        '@@8001 EX.NAGAO UPD
+                WW_YMD = "19" & Mid(exAsp(WW_YMD, 8), 1, 6)         '@@8001 EX.NAGAO UPD
+            Else
+                WW_YMD = "20" & Mid(exAsp(WW_YMD, 8), 1, 6)         '@@8001 EX.NAGAO UPD
+            End If
+        Else
+            '----- ８桁入力
+            WW_YMD = Right("00000000" & CStr(P_DATE), 8)            '@@8001 EX.NAGAO UPD
+        End If
+        '
+        SET_DATE_LL8 = CInt(WW_YMD)                                 '@@8001 EX.NAGAO UPD
+    End Function
+    Function SET_DATE_MONTHS(ByRef W_KIJUN As String, ByRef W_MONTHS As Short) As String
+        '**************************************** 日付計算（月単位）
+        'W_KIJUN : 基準日(YYYY/MM/DD)
+        'W_MONTHS: 月数(+ : 月数後, -: 月数前)
+        '----------------------------------------
+        Dim I As Short
+        '---------------------------------------- 計算用項目定義
+        Dim W_DATE_L As Integer ' 基準日数値ﾀｲﾌﾟ
+        Dim W_DATE_S As String = ""  ' 基準日文字ﾀｲﾌﾟ                               '@@8001 EX.NAGAO UPD 
+        Dim W_MONTHS_P As Short ' 月数絶対値
+        Dim W_LAST_K As String ' 基準日の月末日                                     '@@8001 EX.NAGAO UPD
+        Dim W_LAST_S As String ' 算出日の月末日                                     '@@8001 EX.NAGAO UPD
+        '---------------------------------------- 計算準備
+        SET_DATE_MONTHS = ""
+        If RTrim(W_KIJUN) = "" Then                                                 '@@8001 FUKUZAKI ADD ↓
+            W_KIJUN = String.Format("{0:yy/MM/dd}", Today)
+        End If                                                                      '@@8001 FUKUZAKI ADD ↑                                                                      
+        W_DATE_L = CInt(Mid(W_KIJUN, 1, 4) & Mid(W_KIJUN, 6, 2) & Mid(W_KIJUN, 9, 2))
+        W_MONTHS_P = System.Math.Abs(W_MONTHS)
+        W_LAST_K = SET_DATE_LAST(W_DATE_L)                                          '@@8001 EX.NAGAO UPD
+        '========================================
+        For I = 1 To W_MONTHS_P
+            '------------------------------------ プラス月数の時
+            If W_MONTHS > 0 Then
+                W_DATE_L = W_DATE_L + 100
+                W_DATE_S = CStr(W_DATE_L)                                           '@@8001 EX.NAGAO UPD
+                '-------------------------------- 末月を超えたら翌年1月
+                If (Mid(exAsp(W_DATE_S, 8), 5, 2) > "12") Then                      '@@8001 EX.NAGAO UPD
+                    W_DATE_L = W_DATE_L + 10000
+                    W_DATE_S = CStr(W_DATE_L)                                       '@@8001 EX.NAGAO UPD
+                    Mid(W_DATE_S, 5, 2) = "01"                                      '@@8001 EX.NAGAO UPD
+                    W_DATE_L = CInt(W_DATE_S)                                       '@@8001 EX.NAGAO UPD
+                End If
+                '------------------------------------ マイナス月数の時
+            Else
+                W_DATE_L = W_DATE_L - 100
+                W_DATE_S = CStr(W_DATE_L)                                           '@@8001 EX.NAGAO UPD
+                '-------------------------------- 1月を下回ったら前年末月
+                If (Mid(exAsp(W_DATE_S, 8), 5, 2) = "00") Then                      '@@8001 EX.NAGAO UPD
+                    W_DATE_L = W_DATE_L - 10000
+                    W_DATE_S = CStr(W_DATE_L)                                       '@@8001 EX.NAGAO UPD
+                    Mid(W_DATE_S, 5, 2) = "12"                                      '@@8001 EX.NAGAO UPD
+                    W_DATE_L = CInt(W_DATE_S)                                       '@@8001 EX.NAGAO UPD
+                End If
+            End If
+        Next I
+        '---------------------------------------- 算出日が末日を超えているか、基準日が末日なら末日をセット
+        W_LAST_S = SET_DATE_LAST(W_DATE_L)                                          '@@8001 EX.NAGAO UPD
+        If (Mid(exAsp(W_DATE_S, 8), 7, 2) > RTrim(W_LAST_S)) Or (Mid(W_KIJUN, 9, 2) = RTrim(W_LAST_K)) Then     '@@8001 EX.NAGAO UPD
+            Mid(W_DATE_S, 7, 2) = exAsp(W_LAST_S, 2)                                                            '@@8001 EX.NAGAO UPD
+        End If
+        '========================================
+        SET_DATE_MONTHS = Mid(exAsp(W_DATE_S, 8), 1, 4) & "/" & Mid(exAsp(W_DATE_S, 8), 5, 2) & "/" & Mid(exAsp(W_DATE_S, 8), 7, 2) '@@8001 EX.NAGAO UPD
+    End Function
