@@ -1,0 +1,316 @@
+Option Strict Off
+Option Explicit On
+Public Module C00_E00XB
+    '************************************************************************************************
+    ' System : Factory-ONE 電脳工場
+    ' Title  : 原反カードワークファイル オペレーションサブルーチン
+    ' Version: R 2.0.0
+    '------------------------------------------------------------------------------------------------
+    ' 新  規 : @@110408 Y-OSHIRO   千代田グラビヤ様向けカスタマイズ
+    ' 修　正 : @@110512 ENG OKADA  データ型変更。
+    '        : 20130305 【新システム】不具合・仕様変更管理票532 ADDED BY XIAXUE
+    ' 更  新 : 20160606 FJN AN-TB     64BIT対応 
+    '************************************************************************************************
+    '************************************************
+    '   オラクル用宣言（オブジェクト）
+    '************************************************
+    '------------------------------------------------ OraDynaset:データ保有領域
+    'Public E00W_Dynaset As Object  '20160606 FJN AN-TB DEL
+    Public E00W_Dt As DataTable     '20160606 FJN AN-TB ADD 
+    Public E00W_RecordCount As Integer
+    '------------------------------------------------
+    Structure E00W_RECORD
+        Dim コンピュータ As String
+        Dim プログラム As String
+        Dim 品目K As String
+        Dim 原反C As String
+        'Dim 巾 As Decimal       '@@110512 ENG OKADA CYG CHG↓
+        'Dim 厚み As Decimal
+        Dim 巾 As Double
+        Dim 厚み As Double       '@@110512 ENG OKADA CYG CHG↑
+        Dim 原反K As String
+        Dim 原反状態K As String
+        Dim 原反品質K As String
+        Dim LOTNO As String
+        Dim メーカーLOTNO As String
+        Dim 製番 As String
+        Dim 発注SEQ As Long
+        Dim 発注SEQ2 As Integer
+        Dim 発注先C As String
+        'Dim 数量 As Decimal      '@@110512 ENG OKADA CYG CHG
+        Dim 数量 As Double        '@@110512 ENG OKADA CYG CHG
+        Dim 入庫日 As String
+        Dim 在庫場所C As String
+        '不具合・仕様変更管理票532 ADDED BY XIAXUE AT 20130305 BEGIN
+        Dim 所有先C As String
+        '不具合・仕様変更管理票532 ADDED BY XIAXUE AT 20130305 END
+    End Structure
+    Public E00W As E00W_RECORD
+
+    Public Sub CLR_E00W()
+        '************************************************ ＣＬＳ
+        With E00W
+            .コンピュータ = " "
+            .プログラム = " "
+            .品目K = " "
+            .原反C = " "
+            .巾 = 0
+            .厚み = 0
+            .原反K = " "
+            .原反状態K = " "
+            .原反品質K = " "
+            .LOTNO = " "
+            .メーカーLOTNO = " "
+            .製番 = " "
+            .発注SEQ = 0
+            .発注SEQ2 = 0
+            .発注先C = " "
+            .数量 = 0
+            .入庫日 = " "
+            .在庫場所C = " "
+            '不具合・仕様変更管理票532 ADDED BY XIAXUE AT 20130305 BEGIN
+            .所有先C = " "
+            '不具合・仕様変更管理票532 ADDED BY XIAXUE AT 20130305 END
+        End With
+    End Sub
+
+    Public Sub GEQ_E00W(ByRef Sql_Code As Integer, ByRef Updt As String, Optional ByRef Str_WHERE As String = "", _
+        Optional ByRef Str_ORDER As String = "", Optional ByRef IngFlag As C00_003XB.DynasetFlags = 0, Optional ByRef strColumn As String = "")
+        '************************************************ ＲＥＡＤ
+        Dim sbSQL As New System.Text.StringBuilder
+
+        'On Error GoTo GEQ_E00W_10 '20160606 FJN AN-TB DEL 
+        '------------------------------------------------
+        FLG_Lock = ""
+        '------------------------------------------------
+        Sql_Code = 0
+        '------------------------------------------------
+        If (Not IsDBNull(strColumn)) And (strColumn <> "") Then
+            sbSQL.Append("SELECT " & strColumn)
+        Else
+            sbSQL.Append("SELECT ")
+            sbSQL.Append("NVL(コンピュータ, ' ') AS コンピュータ")
+            sbSQL.Append(",NVL(プログラム, ' ') AS プログラム")
+            sbSQL.Append(",NVL(品目K, ' ') AS 品目K")
+            sbSQL.Append(",NVL(原反C, ' ') AS 原反C")
+            sbSQL.Append(",NVL(巾, 0) AS 巾")
+            sbSQL.Append(",NVL(厚み, 0) AS 厚み")
+            sbSQL.Append(",NVL(原反K, ' ') AS 原反K")
+            sbSQL.Append(",NVL(原反状態K, ' ') AS 原反状態K")
+            sbSQL.Append(",NVL(原反品質K, ' ') AS 原反品質K")
+            sbSQL.Append(",NVL(LOTNO, ' ') AS LOTNO")
+            sbSQL.Append(",NVL(メーカーLOTNO, ' ') AS メーカーLOTNO")
+            sbSQL.Append(",NVL(製番, ' ') AS 製番")
+            sbSQL.Append(",NVL(発注SEQ, 0) AS 発注SEQ")
+            sbSQL.Append(",NVL(発注SEQ2, 0) AS 発注SEQ2")
+            sbSQL.Append(",NVL(発注先C, ' ') AS 発注先C")
+            sbSQL.Append(",NVL(数量, 0) AS 数量")
+            sbSQL.Append(",NVL(入庫日, ' ') AS 入庫日")
+            sbSQL.Append(",NVL(在庫場所C, ' ') AS 在庫場所C")
+            '不具合・仕様変更管理票532 ADDED BY XIAXUE AT 20130305 BEGIN
+            sbSQL.Append(",NVL(所有先C, ' ') AS 所有先C")
+            '不具合・仕様変更管理票532 ADDED BY XIAXUE AT 20130305 END
+        End If
+        sbSQL.Append(" FROM CYG_E00W")
+        If (IsDBNull(Str_WHERE) = False) And (Str_WHERE <> "") Then
+            sbSQL.Append(" WHERE " & Str_WHERE)
+        End If
+        If (IsDBNull(Str_ORDER) = False) And (Str_ORDER <> "") Then
+            sbSQL.Append(" ORDER BY " & Str_ORDER)
+        End If
+        Select Case Updt
+            Case "1"
+                sbSQL.Append(" FOR UPDATE NOWAIT")
+            Case "2"
+                sbSQL.Append(" FOR UPDATE")
+        End Select
+        '------------------------------------------------ レコードセット
+        '20160606 FJN AN-TB ADD START
+        Try
+            E00W_Dt = OraDatabase.DataTable(sbSQL.ToString)
+            '------------------------------------------------
+            E00W_RecordCount = E00W_Dt.Rows.Count
+        Catch ex As OracleClient.OracleException
+            E00W_RecordCount = 0
+            '------------------------------------------------ 入力項目ロックフラグ
+            FLG_Lock = "1"
+            '================================================ オラクルエラー処理 
+            Sql_Code = ex.Code
+            Call oo_OrErr(Sql_Code, ex.Message)
+        End Try
+        '20160606 FJN AN-TB ADD START  
+        '20160606 FJN AN-TB DEL START
+        '        If IngFlag = 0 Then
+        '            E00W_Dynaset = OraDatabase.DbcreateDynaset(sbSQL.ToString, 2)
+        '        Else
+        '            E00W_Dynaset = OraDatabase.DbcreateDynaset(sbSQL.ToString, IngFlag)
+        '        End If
+        '        '------------------------------------------------
+        '        E00W_RecordCount = E00W_Dynaset.RecordCount
+        '        Exit Sub
+        'GEQ_E00W_10:
+        '        '------------------------------------------------ 入力項目ロックフラグ
+        '        FLG_Lock = "1"
+        '        '================================================ オラクルエラー処理
+        '        Call oo_OrErr(Sql_Code)
+        '20160606 FJN AN-TB DEL END 
+    End Sub
+
+    Public Sub INS_E00W(ByRef Sql_Code As Integer)
+        '************************************************ ＩＮＳＥＲＴ
+        Dim sbSQL As New System.Text.StringBuilder
+
+        'On Error GoTo INS_E00W_10   '20160606 FJN AN-TB DEL 
+        '------------------------------------------------
+        Exit Sub
+INS_E00W_10:
+        '------------------------------------------------ オラクルエラー処理
+        Call oo_OrErr(Sql_Code)
+        '------------------------------------------------
+        Sql_Code = 0
+        Call NSP_E00W()
+        '------------------------------------------------ SQL発行
+        With E00W
+            sbSQL.Append("INSERT INTO CYG_E00W ")
+            sbSQL.Append("(")
+            sbSQL.Append("コンピュータ")
+            sbSQL.Append(",プログラム")
+            sbSQL.Append(",品目K")
+            sbSQL.Append(",原反C")
+            sbSQL.Append(",巾")
+            sbSQL.Append(",厚み")
+            sbSQL.Append(",原反K")
+            sbSQL.Append(",原反状態K")
+            sbSQL.Append(",原反品質K")
+            sbSQL.Append(",LOTNO")
+            sbSQL.Append(",メーカーLOTNO")
+            sbSQL.Append(",製番")
+            sbSQL.Append(",発注SEQ")
+            sbSQL.Append(",発注SEQ2")
+            sbSQL.Append(",発注先C")
+            sbSQL.Append(",数量")
+            sbSQL.Append(",入庫日")
+            sbSQL.Append(",在庫場所C")
+            '不具合・仕様変更管理票532 ADDED BY XIAXUE AT 20130305 BEGIN
+            sbSQL.Append(",所有先C")
+            '不具合・仕様変更管理票532 ADDED BY XIAXUE AT 20130305 END
+            sbSQL.Append(") VALUES (")
+            sbSQL.Append("'" & .コンピュータ & "'")
+            sbSQL.Append(",'" & .プログラム & "'")
+            sbSQL.Append(",'" & .品目K & "'")
+            sbSQL.Append(",'" & .原反C & "'")
+            sbSQL.Append(",'" & .巾 & "'")
+            sbSQL.Append(",'" & .厚み & "'")
+            sbSQL.Append(",'" & .原反K & "'")
+            sbSQL.Append(",'" & .原反状態K & "'")
+            sbSQL.Append(",'" & .原反品質K & "'")
+            sbSQL.Append(",'" & .LOTNO & "'")
+            sbSQL.Append(",'" & .メーカーLOTNO & "'")
+            sbSQL.Append(",'" & .製番 & "'")
+            sbSQL.Append(",'" & .発注SEQ & "'")
+            sbSQL.Append(",'" & .発注SEQ2 & "'")
+            sbSQL.Append(",'" & .発注先C & "'")
+            sbSQL.Append(",'" & .数量 & "'")
+            sbSQL.Append(",'" & .入庫日 & "'")
+            '不具合・仕様変更管理票532 ADDED BY XIAXUE AT 20130305 BEGIN
+            sbSQL.Append(",'" & .在庫場所C & "'")
+            sbSQL.Append(",'" & .所有先C & "'")
+            '不具合・仕様変更管理票532 ADDED BY XIAXUE AT 20130305 END
+            sbSQL.Append(")")
+        End With
+        '------------------------------------------------
+        '20160606 FJN AN-TB ADD START  
+        Try
+            OraDatabase.executeSql(sbSQL.ToString)
+        Catch ex As OracleClient.OracleException
+            Sql_Code = ex.Code
+            Call oo_OrErr(Sql_Code, ex.Message)
+        End Try
+        '20160606 FJN AN-TB ADD END 
+        '20160606 FJN AN-TB AEL START  
+        '        OraDatabase.DbExecuteSQL(sbSQL.ToString)
+        '        '------------------------------------------------
+        '        Exit Sub
+        'INS_E00W_10:
+        '        '------------------------------------------------ オラクルエラー処理
+        '        Call oo_OrErr(Sql_Code)
+        '20160606 FJN AN-TB DEL END 
+    End Sub
+    '@@110512 ENG OKADA CYG ADD↓
+    Public Sub INS_E00W(ByRef Sql_Code As Integer, ByVal P_SEQ As Long, ByVal P_SEQ2 As Short)
+        '************************************************ ＩＮＳＥＲＴ（E21FよりInsert）
+        Dim sbSQL As New System.Text.StringBuilder
+
+        'On Error GoTo INS_E00W_10  '20160606 FJN AN-TB DEL 
+        '------------------------------------------------
+        Sql_Code = 0
+        Call NSP_E00W()
+        '------------------------------------------------ SQL発行
+        With E00W
+            sbSQL.Append("INSERT INTO CYG_E00W ")
+            sbSQL.Append("(")
+            sbSQL.Append("コンピュータ")
+            sbSQL.Append(",プログラム")
+            sbSQL.Append(",品目K")
+            sbSQL.Append(",原反C")
+            sbSQL.Append(",巾")
+            sbSQL.Append(",厚み")
+            sbSQL.Append(",原反K")
+            sbSQL.Append(",原反状態K")
+            sbSQL.Append(",原反品質K")
+            sbSQL.Append(",LOTNO")
+            sbSQL.Append(",メーカーLOTNO")
+            sbSQL.Append(",製番")
+            sbSQL.Append(",発注SEQ")
+            sbSQL.Append(",発注SEQ2")
+            sbSQL.Append(",発注先C")
+            sbSQL.Append(",数量")
+            sbSQL.Append(",入庫日")
+            sbSQL.Append(",在庫場所C")
+            '不具合・仕様変更管理票532 ADDED BY XIAXUE AT 20130305 BEGIN
+            sbSQL.Append(",所有先C")
+            '不具合・仕様変更管理票532 ADDED BY XIAXUE AT 20130305 END
+            sbSQL.Append(") SELECT")
+            sbSQL.Append("'" & .コンピュータ & "'")
+            sbSQL.Append(",'" & .プログラム & "'")
+            sbSQL.Append(",'" & .品目K & "'")
+            sbSQL.Append(",'" & .原反C & "'")
+            sbSQL.Append(",'" & .巾 & "'")
+            sbSQL.Append(",'" & .厚み & "'")
+            sbSQL.Append(",'" & .原反K & "'")
+            sbSQL.Append(",'" & .原反状態K & "'")
+            sbSQL.Append(",'" & .原反品質K & "'")
+            sbSQL.Append(",E21F.LOTNO")
+            sbSQL.Append(",E21F.メーカーLOTNO")
+            sbSQL.Append(",'" & .製番 & "'")
+            sbSQL.Append(",'" & .発注SEQ & "'")
+            sbSQL.Append(",'" & .発注SEQ2 & "'")
+            sbSQL.Append(",'" & .発注先C & "'")
+            sbSQL.Append(",'" & .数量 & "'")
+            sbSQL.Append(",'" & .入庫日 & "'")
+            sbSQL.Append(",'" & .在庫場所C & "'")
+            '不具合・仕様変更管理票532 ADDED BY XIAXUE AT 20130305 BEGIN
+            sbSQL.Append(",'" & .所有先C & "'")
+            '不具合・仕様変更管理票532 ADDED BY XIAXUE AT 20130305 END
+            sbSQL.Append(" FROM CYG_E21F E21F")
+            sbSQL.Append(" WHERE E21F.発注SEQ = " & P_SEQ & " and E21F.発注SEQ2 =" & P_SEQ2)
+            sbSQL.Append(" AND E21F.削除F <> '1'")
+        End With
+        '------------------------------------------------
+        '20160606 FJN AN-TB ADD START  
+        Try
+            OraDatabase.executeSql(sbSQL.ToString)
+        Catch ex As OracleClient.OracleException
+            Sql_Code = ex.Code
+            Call oo_OrErr(Sql_Code, ex.Message)
+        End Try
+        '20160606 FJN AN-TB ADD END 
+        '20160606 FJN AN-TB AEL START  
+        '        OraDatabase.DbExecuteSQL(sbSQL.ToString)
+        '        '------------------------------------------------
+        '        Exit Sub
+        'INS_E00W_10:
+        '        '------------------------------------------------ オラクルエラー処理
+        '        Call oo_OrErr(Sql_Code)
+        '20160606 FJN AN-TB DEL END 
+    End Sub
