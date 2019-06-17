@@ -1,0 +1,415 @@
+    Public Function MsgBox(ByVal Prompt As Object, Optional ByVal Buttons As Microsoft.VisualBasic.MsgBoxStyle = 0, Optional ByVal Title As Object = Nothing) As Microsoft.VisualBasic.MsgBoxResult
+        '************************************************ LOG機能追加 ADDED BY ECT LVLU AT 2010/12/26
+        If Environment.GetEnvironmentVariable("StartProgram") IsNot Nothing And Environment.GetEnvironmentVariable("StartProgram") = "BatchProgram" Then
+            Dim Log As Microsoft.VisualBasic.Logging.Log
+            Log = My.Application.Log
+            Log.DefaultFileLogWriter.DiskSpaceExhaustedBehavior = Logging.DiskSpaceExhaustedOption.ThrowException
+            Log.DefaultFileLogWriter.AutoFlush = True
+            If Environment.GetEnvironmentVariable("LogMaxFileSize") IsNot Nothing Then
+                Log.DefaultFileLogWriter.MaxFileSize = Environment.GetEnvironmentVariable("LogMaxFileSize")
+            End If
+            If Environment.GetEnvironmentVariable("LogCustomLocation") IsNot Nothing Then
+                Log.DefaultFileLogWriter.CustomLocation = Environment.GetEnvironmentVariable("LogCustomLocation")
+            End If
+            If Environment.GetEnvironmentVariable("LogName") IsNot Nothing Then
+                Log.DefaultFileLogWriter.BaseFileName = Environment.GetEnvironmentVariable("LogName")
+            End If
+            Try
+                Log.DefaultFileLogWriter.Write(Prompt)
+                Log.DefaultFileLogWriter.WriteLine("")
+                Log.DefaultFileLogWriter.Close()
+                Log.DefaultFileLogWriter.Dispose()
+                Return Nothing
+            Catch ex As Exception
+                Log.DefaultFileLogWriter.Dispose()
+                Microsoft.VisualBasic.Interaction.MsgBox(ex.Message, 16)
+                Application.Exit()
+            End Try
+        End If
+        '************************************************ END ADDED BY ECT LVLU
+        '************************************************ MsgBox。タイトルに「AssemblyTitle」表示機能追加
+        If Title = Nothing Then
+            Title = System.Reflection.Assembly.GetExecutingAssembly.GetCustomAttributes(GetType(System.Reflection.AssemblyTitleAttribute), True).GetValue(0).Title
+        End If
+        Return Microsoft.VisualBasic.Interaction.MsgBox(Prompt, Buttons, Title)
+    End Function
+    '@@7001 KAJI ↓
+    Sub gsbWriteErrorLOG_PK(ByVal ltFileNM As String, ByVal ltFuncNM As String, ByVal szCriteria As String, ByVal szErrorDesc As String)
+        '************************************************  エラー内容出力
+        Dim gFLG As Boolean             '実行フラグ
+        Dim objFile As Object           'ファイルオブジェクト
+        Dim objText As Object           'テキストオブジェクト
+        Dim gNOW As String              'ファイルネーム用日付
+        Dim gFILEDT As String           'ファイルネーム用日付
+        Dim W_RTN_ARR() As String                   'エラー内容配列
+        Dim CB0C_Dynaset As Object
+        Dim CB0C_Dt As DataRow '20170407 ADDED BY XIAXUE
+        Dim CB0C_サーバパス As String
+        Dim GET_CB0C_サーバパス As String
+        Dim strFullPath As String
+        Dim Ww_Local_File As String                 '@@7001 S.SUZUKI
+        Dim Ww_Server_File As String                '@@7001 S.SUZUKI
+        Dim I As Short
+        'Trueで実行
+        gFLG = True
+        '--------------------------------------------
+        If gFLG Then
+            '0:発生日時        5:製番
+            '1:PACKAGE名       6:品目
+            '2:PROCEDURE名     7:SEQ
+            '3:エラー箇所SEQ   8:受払SEQ
+            '4:テーブル名      9:Oracle ErrCD
+            W_RTN_ARR = Split(szErrorDesc, "Φ")
+            ReDim Preserve W_RTN_ARR(10)    '配列変数の格納領域を再割り当て
+            For I = 0 To 10
+                '--------------------------------------------
+                '空文字の場合"NON"に置換
+                If Len(W_RTN_ARR(I)) = 0 Then W_RTN_ARR(I) = "Non"
+            Next I
+            Str_Sql = "SELECT NVL(サーバパス,' ') AS サーバパス"
+            Str_Sql = Str_Sql & " FROM DFW_CB0C"
+            Str_Sql = Str_Sql & " WHERE KEY = '01'"
+            CB0C_Dt = OraDatabase.Row(Str_Sql)
+            With CB0C_Dt
+                If CB0C_Dt Is Nothing Then
+                    CB0C_サーバパス = ""
+                    GET_CB0C_サーバパス = False
+                Else
+                    CB0C_サーバパス = RTrim(CB0C_Dt.Item("サーバパス")) & "EXE\"
+                    GET_CB0C_サーバパス = True
+                End If
+            End With
+
+            '20170407 MODIFIED BY XIAXUE END
+            '--------------------------------------------
+            gNOW = Now()
+            gFILEDT = Right("0000" & Year(gNOW), 4) & Right("00" & Month(gNOW), 2) & Right("00" & Microsoft.VisualBasic.DateAndTime.Day(gNOW), 2)
+            '@@7001 S.SUZUKI ↓
+            'Ww_Local_File = Save_Exe & Left(VB6.GetEXEName(), 12) & ".exe"                 '@@8001 EX.NAGAO DELETE
+            Ww_Local_File = Save_Exe & Left(Work_Program, 12) & ".exe"                      '@@8001 EX.NAGAO ADD
+            If CB0C_サーバパス <> "" Then
+                'Ww_Server_File = CB0C_サーバパス & Left(VB6.GetEXEName(), 12) & ".exe"     '@@8001 EX.NAGAO DELETE
+                Ww_Server_File = CB0C_サーバパス & Left(Work_Program, 12) & ".exe"          '@@8001 EX.NAGAO ADD
+            Else
+                Ww_Server_File = ""
+            End If
+            '@@7001 S.SUZUKI ↑
+            '--------------------------------------------
+            strFullPath = IniDrive & "LOG\ErrorLog" & gFILEDT & ".txt"
+            '--------------------------------------------
+            objFile = CreateObject("Scripting.FileSystemObject")
+            objText = objFile.OpenTextFile(strFullPath, 8, True)
+            objText.WriteLine("****************************************************************")
+            objText.WriteLine("PACKAGEエラー")
+            objText.WriteLine("****************************************************************")
+            objText.WriteLine(" 発生日時         :" & vbTab & W_RTN_ARR(0))
+            objText.WriteLine(" EXE名            :" & vbTab & ltFileNM)
+            objText.WriteLine(" 関 数 名         :" & vbTab & ltFuncNM)
+            '@@7001 S.SUZUKI ↓
+            If System.IO.File.Exists(Ww_Local_File) = True Then
+                objText.WriteLine(" TimeStamp(Local) :" & vbTab & FileDateTime(Ww_Local_File))
+            Else
+                objText.WriteLine(" TimeStamp(Local) :" & vbTab & "Non")
+            End If
+            If Ww_Server_File <> "" Then
+                If System.IO.File.Exists(Ww_Server_File) = True Then
+                    objText.WriteLine(" TimeStamp(Server):" & vbTab & FileDateTime(Ww_Server_File))
+                Else
+                    objText.WriteLine(" TimeStamp(Server):" & vbTab & "Non")
+                End If
+            Else
+                objText.WriteLine(" TimeStamp(Server):" & vbTab & "Non")
+            End If
+            '@@7001 S.SUZUKI ↑
+            objText.WriteLine(" 実行PC           :" & vbTab & Computer_Name)
+            objText.WriteLine(" -------------------------------------------")
+            objText.WriteLine(" PACKAGE名     :" & vbTab & W_RTN_ARR(1))
+            objText.WriteLine(" PROCEDURE名   :" & vbTab & W_RTN_ARR(2))
+            objText.WriteLine(" エラーコード  :" & vbTab & W_RTN_ARR(10))
+            objText.WriteLine(" エラー内容    :" & vbTab & W_RTN_ARR(9))
+            objText.WriteLine(" エラー箇所    :" & vbTab & W_RTN_ARR(3))
+            objText.WriteLine(" テーブル名    :" & vbTab & W_RTN_ARR(4))
+            objText.WriteLine(" 製番          :" & vbTab & W_RTN_ARR(5))
+            objText.WriteLine(" 品目          :" & vbTab & W_RTN_ARR(6))
+            objText.WriteLine(" SEQ           :" & vbTab & W_RTN_ARR(7))
+            objText.WriteLine(" 受払SEQ       :" & vbTab & W_RTN_ARR(8))
+            objText.WriteLine(vbCrLf)
+            '--------------------------------------------
+            objText = Nothing
+            objFile = Nothing
+        End If
+    End Sub
+    '@@7001 KAJI ↑
+    '@@7001 KAJI ↓
+    'Public Function gfnIniRead()                   '@@8001 EX KAJI DEL
+    Public Function gfnIniRead() As Object          '@@8001 EX KAJI ADD
+        '************************************************  エラー用iniファイル展開
+        Dim sb As StringBuilder = New StringBuilder(256)
+        Dim ret As UInt32
+        '--------------------------------------------
+        IniFile = "DFW_Err.ini"
+        gfnIniRead = ""
+        ret = GetPrivateProfileString("ERRLOG", "LOGPATH", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile)
+        Err_LOGPATH = sb.ToString
+        ret = GetPrivateProfileString("ERRLOG", "MSG1", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile)
+        Err_MSG1 = sb.ToString
+        ret = GetPrivateProfileString("ERRLOG", "MSG2", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile)
+        Err_MSG2 = sb.ToString
+        ret = GetPrivateProfileString("ERRLOG", "MSG3", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile)
+        Err_MSG3 = sb.ToString
+    End Function
+    '@@7001 KAJI ↑
+    '@@SEQ↓
+    Public Function Get_Seq(ByVal Q_採番Mode As String, ByVal Q_ファイルId As String, ByVal Q_区分 As String, ByVal Q_Key項目 As String _
+                        , ByRef A_採番Seq As Long, ByRef A_採番製番 As String, ByRef A_ErrCd As Long, ByRef A_ErrTx As String) As Boolean
+        '******************************************** 採番処理
+        '-------------------------------------------- 初期化
+        If Len(Q_区分.TrimEnd) = 0 Then
+            Q_区分 = " "
+        End If
+        A_採番Seq = 0
+        A_採番製番 = " "
+        A_ErrCd = 0
+        A_ErrTx = " "
+        
+        '-------------------------------------------- パラメータ設定
+        Dim parass(7) As OracleClient.OracleParameter
+        parass(0) = OraDatabase.NewInputStrPara("P_MODE", 2, Q_採番Mode)
+        parass(1) = OraDatabase.NewInputStrPara("P_FILE", 40, Q_ファイルId)
+        '20160825 ECT XIAXUE  0710対応 BEGIN
+        'parass(2) = OraDatabase.NewInputStrPara("P_KBN", 6, Q_区分)
+        parass(2) = OraDatabase.NewInputStrPara("P_KBN", 40, Q_区分)
+        '20160825 ECT XIAXUE  0710対応 END
+        parass(3) = OraDatabase.NewInputStrPara("P_NAME", 40, Q_Key項目)
+        parass(4) = OraDatabase.NewPara("P_SEQ", OracleType.Number, 10, ParameterDirection.InputOutput, 0)
+        parass(5) = OraDatabase.NewPara("P_SEBAN", OracleType.Char, 2000, ParameterDirection.InputOutput, " ")
+        parass(6) = OraDatabase.NewPara("P_ERRCD", OracleType.Number, 10, ParameterDirection.InputOutput, 0)
+        parass(7) = OraDatabase.NewPara("P_ERRTX", OracleType.Char, 2000, ParameterDirection.InputOutput, " ")
+
+        OraDatabase.CallProcedure("CYG_C00_C90C.SEQ_OPE", parass)
+        A_ErrCd = parass(6).Value
+        If A_ErrCd <> 0 Then
+            '---------------------------------------- エラー発生
+            A_ErrTx = parass(7).Value
+            Return False
+        Else
+            '---------------------------------------- 正常
+            A_採番Seq = parass(4).Value
+            A_採番製番 = parass(5).Value
+            Return True
+        End If
+        '20150608 ECT LIUSW MOD END
+    End Function
+    '@@SEQ↑
+    '@@7001 HIRASAWA ↓
+    Public Function CheckEntry(ByRef e As System.Windows.Forms.KeyPressEventArgs) As Boolean
+        CheckEntry = False
+        '************************************************  入力文字判定
+        ' 入力文字が使用不可文字の場合、入力を受け付けない
+        Dim str As String = "'"     '使用不可文字（複数指定可）
+        Try
+            CheckEntry = False
+            If str.IndexOf(e.KeyChar) >= 0 Then
+                e.Handled = True
+                'MsgBox("「" & e.KeyChar & "」は使用不可文字です。")
+                CheckEntry = True
+            End If
+        Catch
+            MsgBox("入力文字判定が出来ませんでした。", MsgBoxStyle.Exclamation)
+        End Try
+    End Function
+    Public Sub PanelEnabled(ByVal obj As Object)
+        '************************************************  ﾊﾟﾈﾙｺﾝﾄﾛｰﾙEnabledﾌﾟﾛﾊﾟﾃｨ設定
+        ' デザイン時にEnabled=Falseに設定されているﾊﾟﾈﾙｺﾝﾄﾛｰﾙのEnabledﾌﾟﾛﾊﾟﾃｨを再設定する。
+        Try
+            '引数objの子ｺﾝﾄﾛｰﾙを全て検索
+            For Each MyObject As Object In obj.Controls
+                '子ｺﾝﾄﾛｰﾙが存在する場合
+                If MyObject.Controls.Count > 0 Then
+                    'EnabledﾌﾟﾛﾊﾟﾃｨがFalseに設定されている場合、Trueに設定した後Falseにする。
+                    If MyObject.Enabled = False Then
+                        MyObject.Enabled = True
+                        'さらに下位のｺﾝﾄﾛｰﾙについても同様の処理をする。
+                        Call PanelEnabled(MyObject)
+                        MyObject.Enabled = False
+                    Else
+                        'さらに下位のｺﾝﾄﾛｰﾙについても同様の処理をする。
+                        Call PanelEnabled(MyObject)
+                    End If
+                End If
+            Next
+        Catch
+            MsgBox("ﾊﾟﾈﾙｺﾝﾄﾛｰﾙの設定が出来ませんでした。", MsgBoxStyle.Exclamation)
+        End Try
+        BfFormName = ""                     '@@8001 S.SUZUKI
+    End Sub
+    '@@7001 HIRASAWA ↑
+    Public Function Get_OrclSts(Optional ByVal P_version As String = "", Optional ByVal P_connect_by As String = "") As Boolean '↓@@2199 EX Nagao ins
+        Get_OrclSts = False
+        '************************************************ Oracle設定状態取得
+        ' 「ver.8以外」で「_old_connect_by_enabled=False」
+        ' に設定されていれば(Siblings by が必要)Falseを返す。
+        '================================================
+        Dim Ww_Ds As Object
+        Dim Ww_Sql As String
+        '------------------------------------------------
+        Try
+            '-------------------------------------------- Oracleﾊﾞｰｼﾞｮﾝ情報取得
+            Ww_Sql = "SELECT SUBSTR(VERSION,1,1) AS VERSION FROM SYS.V_$INSTANCE WHERE INSTANCE_NUMBER = 1"
+            Ww_Ds = OraDatabase.DbcreateDynaset(Ww_Sql, DynasetFlags.OraDyn_DFW_Default)
+            If Ww_Ds.RecordCount = 0 Then
+                P_version = "8"
+            Else
+                P_version = Ww_Ds.Fields("VERSION").Value
+            End If
+            '--------------------------------------------_old_connect_by_enabled情報取得
+            Ww_Sql = "select value from SYS.v_$parameter where name = '_old_connect_by_enabled'"
+            Ww_Ds = OraDatabase.DbcreateDynaset(Ww_Sql, DynasetFlags.OraDyn_DFW_Default)
+            If Ww_Ds.RecordCount = 0 Then
+                P_connect_by = "FALSE"
+            Else
+                P_connect_by = Ww_Ds.Fields("value").Value
+            End If
+            '-------------------------------------------- 判定
+            If P_version = "8" Then
+                Return True
+            End If
+            If P_connect_by = "TRUE" Then
+                Return True
+            Else
+                Return False
+            End If
+        Catch
+            '-------------------------------------------- ｴﾗｰ処理
+            MsgBox("Oracleの設定情報を取得出来ませんでした。", MsgBoxStyle.Exclamation)
+        Finally
+            Ww_Ds = Nothing
+            Ww_Sql = ""
+        End Try
+    End Function                                                                                                            '↑@@2199 EX Nagao ins
+    '@@8001 EX.NAGAO ADD START
+    Public Function exNsp(ByVal Q_Input1 As Object) As Object
+        '************************************************ Null→スペース
+        ' 受け渡された項目が長さ0文字、NULL の時スペースを返す
+        '------------------------------------------------
+        ' Q_Input1 : 文字列
+        '================================================
+        If IsDBNull(Q_Input1) OrElse (Q_Input1 = "") Then
+            Return " "
+        Else
+            Return Q_Input1
+        End If
+    End Function
+    Public Function exAsp(ByVal Q_Str As String, ByVal Q_Length As Short) As Object
+        '************************************************ 項目長調整(Space付加)
+        ' 文字列に、スペースを付加して受け渡す。
+        '------------------------------------------------
+        ' Q_Str : 文字列
+        ' Q_Length : 項目長
+        '================================================
+        Dim W As Short
+        W = exLenB(Trim(Q_Str))
+        If W < Q_Length Then
+            Return Trim(Q_Str) & Space(Q_Length - W)
+        Else
+            Return Trim(Q_Str)
+        End If
+    End Function
+    Public Sub Nsp_Jnl()
+        '************************************************ ＪＮＬ項目(Null→スペース)
+        With JNL
+            .オペレータC = exNsp(.オペレータC)
+            .WSID = exNsp(.WSID)
+            .モニターF = exNsp(.モニターF)
+            .処理K = exNsp(.処理K)
+            .新旧F = exNsp(.新旧F)
+            .更新F1 = exNsp(.更新F1)
+            .更新F2 = exNsp(.更新F2)
+            .更新F3 = exNsp(.更新F3)
+            .更新F4 = exNsp(.更新F4)
+            .更新F5 = exNsp(.更新F5)
+            .更新F6 = exNsp(.更新F6)
+            .更新F7 = exNsp(.更新F7)
+            .更新F8 = exNsp(.更新F8)
+            .更新F9 = exNsp(.更新F9)
+            .更新F10 = exNsp(.更新F10)
+            .更新日 = exNsp(.更新日)
+            .更新時 = exNsp(.更新時)
+        End With
+    End Sub
+    '@@8001 EX.NAGAO ADD END
+    '@@8001 S.SUZUKI ADD↓
+    Public Sub Set_FormMinSize(ByVal Q_Form As System.Windows.Forms.Form)
+        '************************************************ フォーム初期サイズからフォーム最小サイズを設定します。
+        If Q_Form.Name = BfFormName Then
+            Exit Sub
+        Else
+            BfFormName = Q_Form.Name
+            IniFormSize.Height = 0
+        End If
+        If IniFormSize.Height <> 0 Then
+            Exit Sub
+        End If
+        IniFormSize = Q_Form.Size
+        Q_Form.MinimumSize = IniFormSize
+    End Sub
+    '@@8001 S.SUZUKI ADD↑
+
+    '20141111 事業部別追加要望PJ管理台帳0021 ADDED BY XIAXUE BEGIN
+    Public Function CHECK_LOGIN() As Boolean
+        CHECK_LOGIN = True
+        '20150608 ECT LIUSW MOD BEGIN
+        'Dim M50M_Dynaset As Object 
+        Dim M50M_オペレータ区分 As String
+        '20150608 ECT LIUSW MOD END
+        '20151116 ADDED BY XIAOHY START
+        If オペレータ Is Nothing Then
+            C00_000XA = New DFW_C00_000X.C00_000XC
+            Dim Result As String = C00_000XA.Init(Company, Licence, IniDrive, IniFile)
+
+            Dim sb As StringBuilder = New StringBuilder(256)
+            Dim ret As UInt32
+            '---------------------------------------- 読込
+            ret = GetPrivateProfileString("DFW", "DFW_OPERAETOR", "", sb, Convert.ToUInt32(sb.Capacity), IniDrive & IniFile)
+            オペレータ = sb.ToString
+            C00_000XA = Nothing
+        End If
+        '20151116 ADDED BY XIAOHY END
+        Str_Sql = "SELECT オペレータ区分 FROM DFW_M50M T WHERE T.人員C = '" & オペレータ & "'"
+        '20150608 ECT LIUSW MOD BEGIN
+        'M50M_Dynaset = OraDatabase.DbcreateDynaset(Str_Sql, DynasetFlags.OraDyn_DFW_Default)
+        ''ログインユーザーの「オペレータ区分」を確認。70なら処理スキップ（メンテナンスモードにしない）。
+        'If RTrim(M50M_Dynaset!オペレータ区分.Value) <> "70" Then
+        M50M_オペレータ区分 = OraDatabase.Value(Str_Sql)
+        If RTrim(M50M_オペレータ区分) <> "70" Then
+            '20150608 ECT LIUSW MOD END
+            'メンテナンスモードの情報を抽出。
+            Str_Sql = "SELECT RTRIM(T.PARAM) AS PARAM" & _
+                      "  FROM DFW_CA0C T" & _
+                      " WHERE T.APPLICATIONNAME = 'DFW_C10_000S'" & _
+                      "   AND T.KEYNAME = 'メンテナン'"
+            '20150608 ECT LIUSW MOD BEGIN
+            'Dim CA0C_Dynaset As Object
+            'CA0C_Dynaset = OraDatabase.DbcreateDynaset(Str_Sql, 2)
+            'Dim PARAM As String = IIf(IsDBNull(CA0C_Dynaset!PARAM.Value), "", CA0C_Dynaset!PARAM.Value)
+            Dim CA0C_PARAM As DataTable
+            CA0C_PARAM = OraDatabase.Datatable(Str_Sql)
+            Dim PARAM As String = IIf(IsDBNull(CA0C_PARAM.Rows(0).Item("PARAM")), "", CA0C_PARAM.Rows(0).Item("PARAM").ToString)
+            '20150608 ECT LIUSW MOD END
+            'PARAMの確認。
+            If IsDate(PARAM) AndAlso Trim(PARAM).Length > 15 Then
+                'sysdateとの比較。
+                Dim time As Date = Date.Parse(PARAM)
+                '20150320 不具合・仕様変更管理票・1684 BUG FIX BEGIN
+                'If String.Format("{0:yyyy/MM/dd hh:mm:ss}", time) <= String.Format("{0:yyyy/MM/dd hh:mm:ss}", Date.Now()) Then
+                If String.Format("{0:yyyy/MM/dd HH:mm:ss}", time) <= String.Format("{0:yyyy/MM/dd HH:mm:ss}", Date.Now()) Then
+                    '20150320 不具合・仕様変更管理票・1684 BUG FIX END
+                    MsgBox("システムメンテナンス中のため、ログイン出来ません。 " & Chr(10) & Chr(13) & "しばらくお待ちください。", MsgBoxStyle.Critical)
+                    Exit Function
+                End If
+            End If
+        End If
+        CHECK_LOGIN = False
+    End Function
+    '20141111 事業部別追加要望PJ管理台帳0021 ADDED BY XIAXUE END
+End Module
